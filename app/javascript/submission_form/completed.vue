@@ -102,10 +102,16 @@
     >
       {{ t('powered_by') }}
       <a
-        href="https://www.docuseal.com/start"
+        href="https://www.findem.ai"
         target="_blank"
         class="underline"
-      >DocuSeal</a> - {{ t('open_source_documents_software') }}
+      >Findem</a>
+      &middot;
+      <a
+        href="https://github.com/findemdev/findem-esign"
+        target="_blank"
+        class="underline"
+      >source</a>
     </div>
   </div>
 </template>

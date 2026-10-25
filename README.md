@@ -1,3 +1,9 @@
+# Findem Sign
+
+Findem's e-signature service: a fork of [DocuSeal](https://github.com/docusealco/docuseal) (AGPL-3.0) that presents itself as Findem where people meet it. The People gateway in Findem Studio sends documents through its API; signers sign on its hosted page. Changes against upstream are limited to the product name and addresses (`lib/docuseal.rb`), the mark and icons, the page titles and metadata, and the signing page's credit, which links to this repository as the licence's source offer. Everything else, including the licence, is upstream's; merge upstream tags to pick up fixes.
+
+---
+
 <h1 align="center" style="border-bottom: none">
   <div>
     <a href="https://www.docuseal.com">
