@@ -23,8 +23,14 @@ Rails.application.routes.draw do
     end
   end
 
+  get 'sign_up' => 'registrations#new', as: :new_registration
+  post 'sign_up' => 'registrations#create', as: :registration
+
   namespace :api, defaults: { format: :json } do
     resource :user, only: %i[show]
+    namespace :platform do
+      resources :accounts, only: %i[create]
+    end
     resources :attachments, only: %i[create]
     resources :submitter_email_clicks, only: %i[create]
     resources :submitter_form_views, only: %i[create]

@@ -2,6 +2,8 @@
 
 Findem's e-signature service: a fork of [DocuSeal](https://github.com/docusealco/docuseal) (AGPL-3.0) that presents itself as Findem where people meet it. The People gateway in Findem Studio sends documents through its API; signers sign on its hosted page. Changes against upstream are limited to the product name and addresses (`lib/docuseal.rb`), the mark and icons, the page titles and metadata, and the signing page's credit, which links to this repository as the licence's source offer. Everything else, including the licence, is upstream's; merge upstream tags to pick up fixes.
 
+**Platform accounts.** A shared, multi-tenant instance (`MULTITENANT=true`) lets the platform that runs it create tenant accounts without anyone signing up: `POST /api/platform/accounts` with `Authorization: Bearer <PLATFORM_API_TOKEN>` and a JSON body `{ external_id, name, email, timezone, locale, webhook: { url, secret: { "X-Header": "value" }, events } }` creates the account (or finds it by `external_id`), an admin user with the given email and a random password, an API token and the webhook, and answers `201 { account_id, user_id, api_token }`; the same call again answers `200` with a freshly rotated token (the previous one stops working) and the webhook upserted; invalid input is a `422` with a short `error`. The route does not exist (`404`) unless `PLATFORM_API_TOKEN` is set. Public sign-up (`/sign_up`) stays closed on a multi-tenant instance unless `ALLOW_SIGNUP=true`; the single-tenant first-run setup is unchanged.
+
 ---
 
 <h1 align="center" style="border-bottom: none">
