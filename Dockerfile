@@ -1,4 +1,4 @@
-FROM ruby:4.0.5-alpine AS download
+FROM ruby:4.0.9-alpine AS download
 
 WORKDIR /fonts
 
@@ -17,7 +17,7 @@ RUN apk --no-cache add wget unzip && \
     mkdir -p /pdfium-linux && \
     unzip -q pdfium-linux.zip -d /pdfium-linux
 
-FROM ruby:4.0.5-alpine AS webpack
+FROM ruby:4.0.9-alpine AS webpack
 
 ENV RAILS_ENV=production
 ENV NODE_ENV=production
@@ -44,7 +44,7 @@ COPY ./app/views ./app/views
 
 RUN echo "gem 'shakapacker'" > Gemfile && ./bin/shakapacker
 
-FROM ruby:4.0.5-alpine AS app
+FROM ruby:4.0.9-alpine AS app
 
 ENV RAILS_ENV=production
 ENV BUNDLE_WITHOUT="development:test"
@@ -72,6 +72,9 @@ activate = 1' >> /etc/openssl_legacy.cnf
 COPY --chown=docuseal:docuseal ./Gemfile ./Gemfile.lock ./
 
 RUN apk add --no-cache build-base git libpq-dev yaml-dev && bundle install && apk del --no-cache build-base git libpq-dev yaml-dev && rm -rf ~/.bundle /usr/local/bundle/cache && ruby -e "puts Dir['/usr/local/bundle/**/{spec,rdoc,resources/shared,resources/collation,resources/locales,resources/unicode_data/properties}'] + Dir['/usr/local/bundle/gems/*/{test,tests,examples,sample,misc,doc,docs}'] + Dir['/usr/local/bundle/gems/*/ext/**/*.{c,h,o,S}']" | xargs rm -rf && ln -sf /usr/lib/libonnxruntime.so.1 $(ruby -e "print Dir[Gem::Specification.find_by_name('onnxruntime').gem_dir + '/vendor/*.so'].first")
+
+# Ruby's default json gem is unpatched (CVE-2026-33210); remove it so require "json" loads the bundle's fixed copy.
+RUN ruby -e "puts Dir[File.join(Gem.default_specifications_dir, 'json-[0-9]*.gemspec'), File.join(Gem.default_dir, 'gems', 'json-[0-9]*'), File.join(RbConfig::CONFIG['rubylibdir'], 'json{,.rb}'), File.join(RbConfig::CONFIG['rubyarchdir'], 'json')]" | xargs rm -rf && ruby -rjson -e 'puts JSON::VERSION'
 
 COPY --chown=docuseal:docuseal ./bin ./bin
 COPY --chown=docuseal:docuseal ./app ./app
