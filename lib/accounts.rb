@@ -157,6 +157,13 @@ module Accounts
     true
   end
 
+  # The per-account configs the first-run setup creates: signing certificates and full-text search.
+  def create_initial_configs(account)
+    account.encrypted_configs.create!(key: EncryptedConfig::ESIGN_CERTS_KEY,
+                                      value: GenerateCertificate.call.transform_values(&:to_pem))
+    account.account_configs.create!(key: :fulltext_search, value: true) if SearchEntry.table_exists?
+  end
+
   def normalize_timezone(timezone)
     tzinfo = TZInfo::Timezone.get(ActiveSupport::TimeZone::MAPPING[timezone] || timezone)
 

@@ -61,6 +61,16 @@ module Docuseal
     ENV['MULTITENANT'] == 'true'
   end
 
+  # Public sign-up on a multi-tenant instance; closed by default, tenants come from the platform API.
+  def signup_allowed?
+    multitenant? && ENV['ALLOW_SIGNUP'] == 'true'
+  end
+
+  # Bearer token of POST /api/platform/accounts; without it the route answers 404.
+  def platform_api_token
+    ENV['PLATFORM_API_TOKEN'].presence
+  end
+
   def advanced_formats?
     multitenant?
   end

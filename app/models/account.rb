@@ -6,6 +6,7 @@
 #
 #  id          :bigint           not null, primary key
 #  archived_at :datetime
+#  external_id :string
 #  locale      :string           not null
 #  name        :string           not null
 #  timezone    :string           not null
@@ -15,6 +16,7 @@
 #
 # Indexes
 #
+#  index_accounts_on_external_id  (external_id) UNIQUE
 #  index_accounts_on_uuid  (uuid) UNIQUE
 #
 class Account < ApplicationRecord

@@ -12,7 +12,7 @@ class SessionsController < Devise::SessionsController
   def create
     email = sign_in_params[:email].to_s.downcase
 
-    if Docuseal.multitenant? && !User.exists?(email:)
+    if Docuseal.signup_allowed? && !User.exists?(email:)
       Rollbar.warning('Sign in new user') if defined?(Rollbar)
 
       respond_to do |format|
