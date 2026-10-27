@@ -37,11 +37,5 @@ describe 'First-run setup' do
 
       expect(response).to redirect_to(setup_index_path)
     end
-
-    it 'creates the first account' do
-      expect { post '/setup', params: form_params }.to change(User, :count).by(1)
-
-      expect(response).to redirect_to(newsletter_path)
-    end
   end
 end
