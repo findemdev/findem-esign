@@ -64,8 +64,11 @@ describe 'Platform accounts API' do
       expect(api_token).to eq(user.access_token.token)
       expect(account).to have_attributes(name: 'Acme Robotics', timezone: 'Pacific Time (US & Canada)',
                                          locale: 'en-US')
-      expect(user).to have_attributes(email: body[:email], role: User::ADMIN_ROLE)
+      expect(user).to have_attributes(email: body[:email], role: User::ADMIN_ROLE, first_name: 'Acme Robotics',
+                                      last_name: nil)
       expect(user.confirmed_at).to be_present
+      expect(user.user_configs.pluck(:key, :value)).to contain_exactly([UserConfig::RECEIVE_COMPLETED_EMAIL, false],
+                                                                       [UserConfig::RECEIVE_DECLINED_EMAIL, false])
       expect(account.encrypted_configs.find_by(key: EncryptedConfig::ESIGN_CERTS_KEY).value).to be_present
       expect(account.webhook_urls.first).to have_attributes(url: webhook_params[:url],
                                                             secret: webhook_params[:secret],
@@ -117,6 +120,34 @@ describe 'Platform accounts API' do
       get '/api/templates', headers: { 'x-auth-token' => second['api_token'] }
 
       expect(response).to have_http_status(:ok)
+    end
+
+    it 'keeps the user standing for the tenant on a repeat' do
+      post('/api/platform/accounts', params: body.to_json, headers:)
+
+      user = User.find(response.parsed_body['user_id'])
+      user.update!(first_name: 'Someone', last_name: 'Else')
+      user.user_configs.find_by!(key: UserConfig::RECEIVE_COMPLETED_EMAIL).update!(value: true)
+
+      post('/api/platform/accounts', params: body.to_json, headers:)
+
+      expect(user.reload).to have_attributes(first_name: 'Acme Robotics', last_name: nil)
+      expect(user.user_configs.pluck(:key, :value)).to contain_exactly([UserConfig::RECEIVE_COMPLETED_EMAIL, false],
+                                                                       [UserConfig::RECEIVE_DECLINED_EMAIL, false])
+    end
+
+    it 'sends its user no password-reset email' do
+      post('/api/platform/accounts', params: body.to_json, headers:)
+
+      post user_password_path, params: { user: { email: body[:email] } }
+
+      expect(ActionMailer::Base.deliveries).to be_empty
+
+      person = create(:user)
+
+      post user_password_path, params: { user: { email: person.email } }
+
+      expect(ActionMailer::Base.deliveries.map(&:to)).to eq([[person.email]])
     end
 
     it 'answers 422 on invalid input' do

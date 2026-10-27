@@ -84,6 +84,13 @@ class User < ApplicationRecord
     super || build_access_token.tap(&:save!)
   end
 
+  # A platform account is API-only: no password-reset or unlock emails, so nobody takes over its user by email.
+  def send_devise_notification(...)
+    return if account.external_id?
+
+    super
+  end
+
   def active_for_authentication?
     super && !archived_at? && !account.archived_at?
   end

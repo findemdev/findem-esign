@@ -135,7 +135,7 @@ class ApplicationController < ActionController::Base
   end
 
   def maybe_redirect_to_setup
-    redirect_to setup_index_path unless User.exists?
+    redirect_to setup_index_path unless Docuseal.multitenant? || User.exists?
   end
 
   def button_title(title: I18n.t('submit'), disabled_with: I18n.t('submitting'), title_class: '', icon: nil,
