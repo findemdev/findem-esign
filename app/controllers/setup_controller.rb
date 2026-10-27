@@ -5,6 +5,7 @@ class SetupController < ApplicationController
   skip_before_action :authenticate_user!
   skip_authorization_check
 
+  before_action :ensure_single_tenant!
   before_action :redirect_to_root_if_signed, if: :signed_in?
   before_action :ensure_first_user_not_created!
 
@@ -64,6 +65,11 @@ class SetupController < ApplicationController
     return {} unless params[:encrypted_config]
 
     params.require(:encrypted_config).permit(:value)
+  end
+
+  # A shared instance has no first-run setup: its accounts come from the platform API (or sign-up, where allowed).
+  def ensure_single_tenant!
+    render 'errors/404', status: :not_found, layout: false if Docuseal.multitenant?
   end
 
   def redirect_to_root_if_signed

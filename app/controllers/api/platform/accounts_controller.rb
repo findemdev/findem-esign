@@ -66,9 +66,23 @@ module Api
       def find_or_create_user(account)
         email = params[:email].to_s.strip.downcase
 
-        account.users.active.find_by(email:) ||
-          account.users.create!(email:, password: SecureRandom.hex, role: User::ADMIN_ROLE,
-                                confirmed_at: Time.current)
+        user = account.users.active.find_by(email:) ||
+               account.users.create!(email:, password: SecureRandom.hex, role: User::ADMIN_ROLE,
+                                     confirmed_at: Time.current)
+
+        stand_for_tenant(user, account)
+
+        user
+      end
+
+      # The user stands for the tenant, not a person: signers see the tenant's name as the sender, and the completed and
+      # declined notices stay off (the platform hears of those by webhook; the address is its own, not a person's).
+      def stand_for_tenant(user, account)
+        user.update!(first_name: account.name, last_name: nil) if user.full_name != account.name
+
+        [UserConfig::RECEIVE_COMPLETED_EMAIL, UserConfig::RECEIVE_DECLINED_EMAIL].each do |key|
+          user.user_configs.find_or_initialize_by(key:).update!(value: false)
+        end
       end
 
       # The raw token is returned once; a repeat call rotates it, so the previous one stops working.
