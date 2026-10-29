@@ -21,7 +21,7 @@
       <%= banner_html || capture do %>
         <%= render('submit_form/banner') %>
         <header id="signing_form_header" class="sticky min-[1230px]:static top-0 z-50 bg-base-100 py-2 px-2 flex items-center md:-mx-[8px]" style="margin-bottom: -16px">
-          <h1 class="text-xl md:text-2xl font-medium focus:text-clip" style="width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <h1 class="font-serif text-xl md:text-2xl font-normal focus:text-clip" style="width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
             <%= @submitter.submission.name || @submitter.submission.template&.name %>
           </h1>
           <div class="flex items-center gap-2 group" style="margin-left: 20px; flex-shrink: 0">

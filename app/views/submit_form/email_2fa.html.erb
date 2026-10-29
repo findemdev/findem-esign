@@ -15,7 +15,7 @@
             <%= svg_icon('writing_sign', class: 'w-10 h-10') %>
           </div>
           <div>
-            <p dir="auto" class="text-lg font-bold mb-1"><%= @submitter.submission.name || @submitter.submission.template&.name %></p>
+            <p dir="auto" class="font-serif text-xl font-medium mb-1"><%= @submitter.submission.name || @submitter.submission.template&.name %></p>
             <% last_submitter = @submitter.submission.submitters.completed.order(:completed_at).last %>
             <% if last_submitter %>
               <p dir="auto" class="text-sm">

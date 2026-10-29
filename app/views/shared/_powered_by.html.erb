@@ -1,4 +1,4 @@
-<div class="text-center px-2">
+<div class="text-center px-2 text-sm text-base-content/70">
   <% if local_assigns[:with_counter] %>
     <% count = CompletedSubmitter.distinct.count(:submission_id) %>
     <% if count > 1 %>
