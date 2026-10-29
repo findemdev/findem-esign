@@ -6,7 +6,7 @@
     role="status"
     tabindex="-1"
   >
-    <div class="font-medium text-2xl flex items-center space-x-1.5 mx-auto">
+    <div class="font-serif text-2xl flex items-center space-x-1.5 mx-auto">
       <IconCircleCheck
         class="inline text-green-600"
         aria-hidden="true"
@@ -98,7 +98,7 @@
     </div>
     <div
       v-if="attribution"
-      class="text-center mt-4"
+      class="text-center mt-4 text-sm text-base-content/70"
     >
       {{ t('powered_by') }}
       <a

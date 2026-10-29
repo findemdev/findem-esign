@@ -1,0 +1,66 @@
+// Findem Studio's look, layered over the theme in tailwind.config.js.
+
+// Season is licensed: Studio serves it to other Findem origins (CORS), so the files never ship in this repository.
+$season-fonts: 'https://studio.findem.ai/fonts/illuminate/v1';
+
+@each $family, $file, $weight in
+  ('Season Sans', 'SeasonSans-Regular', 400),
+  ('Season Sans', 'SeasonSans-Medium', 500),
+  ('Season Sans', 'SeasonSans-SemiBold', 600),
+  ('Season Sans', 'SeasonSans-Bold', 700),
+  ('Season Serif', 'SeasonSerif-Regular', 400),
+  ('Season Serif', 'SeasonSerif-Medium', 500) {
+  @font-face {
+    font-family: $family;
+    src: url('#{$season-fonts}/#{$file}.otf') format('opentype');
+    font-style: normal;
+    font-weight: $weight;
+    font-display: swap;
+  }
+}
+
+// Season Sans redraws typed text with calt and spreads words apart with tnum; Studio turns both off.
+html {
+  font-feature-settings: "tnum" 0, "calt" 0;
+}
+
+// The rules below match classes as attributes: Tailwind's @apply copies, and rewrites, any rule that names an applied class.
+[class~="btn"],
+[class~="base-button"],
+[class~="white-button"] {
+  font-weight: 500;
+}
+
+// Secondary buttons are white with the control edge (3:1 on white); hover fills them with the muted surface.
+$secondary-buttons: '[class~="btn"]:where(:not([class~="btn-neutral"], [class~="btn-primary"], [class~="btn-secondary"], [class~="btn-accent"], [class~="btn-info"], [class~="btn-success"], [class~="btn-warning"], [class~="btn-error"], [class~="btn-ghost"], [class~="btn-link"], [class~="btn-active"])), [class~="btn-outline"], [class~="white-button"]';
+
+#{$secondary-buttons} {
+  border-width: 1px;
+  border-color: #958c79;
+  background-color: #ffffff;
+  color: hsl(var(--bc));
+
+  &:hover {
+    border-color: hsl(var(--bc));
+    background-color: hsl(var(--b2));
+    color: hsl(var(--bc));
+  }
+}
+
+// Upstream uppercased every button, so several locales keep the step labels (next, submit) lowercase.
+#submit_form_button > span > span:not([class])::first-letter {
+  text-transform: uppercase;
+}
+
+// Fields take the same edge; a focused field takes an ink edge.
+$fields: '[class~="input-bordered"], [class~="select-bordered"], [class~="textarea-bordered"], [class~="base-input"], [class~="base-select"], [class~="base-textarea"]';
+
+#{$fields} {
+  border-color: #958c79;
+
+  &:focus {
+    border-color: hsl(var(--bc));
+    outline: 1px solid hsl(var(--bc));
+    outline-offset: 0;
+  }
+}

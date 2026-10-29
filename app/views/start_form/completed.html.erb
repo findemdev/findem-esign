@@ -10,7 +10,7 @@
             <%= svg_icon('writing_sign', class: 'w-10 h-10') %>
           </div>
           <div>
-            <p dir="auto" class="text-lg font-bold mb-1"><%= @submitter.submission.template&.name %></p>
+            <p dir="auto" class="font-serif text-xl font-medium mb-1"><%= @submitter.submission.template&.name %></p>
             <p dir="auto" class="text-sm">
               <%= t(@submitter.with_signature_fields? ? 'signed_on_time' : 'completed_on_time', time: l(@submitter.completed_at.in_time_zone(@submitter.account.timezone).to_date, format: :long)) %>
             </p>
@@ -18,7 +18,7 @@
         </div>
       </div>
     </div>
-    <div dir="auto" class="text-center text-2xl font-semibold">
+    <div dir="auto" class="text-center font-serif text-2xl font-normal">
       <%= @submitter.with_signature_fields? ? t('document_has_been_signed_already') : t('form_has_been_submitted_already') %>
     </div>
     <% if Docuseal.multitenant? || Accounts.can_send_emails?(@submitter.account) %>
