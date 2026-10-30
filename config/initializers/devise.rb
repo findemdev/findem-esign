@@ -8,6 +8,12 @@ class FailureApp < Devise::FailureApp
 
     super
   end
+
+  def redirect_url
+    return super unless scope == :user && request.get?
+
+    PlatformEntry.url_for(attempted_path) || super
+  end
 end
 
 module Devise

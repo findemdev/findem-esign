@@ -78,11 +78,14 @@ module PlatformSessions
                   path.include?('\\') || path.match?(/[[:cntrl:]]/)
 
     uri = URI.parse(path)
+    decoded = URI::DEFAULT_PARSER.unescape(uri.path)
 
-    return '/' if uri.host || uri.scheme || uri.path == '/api' || uri.path.start_with?('/api/')
+    return '/' if uri.host || uri.scheme || decoded == '/api' || decoded.start_with?('/api/') ||
+                  uri.path.match?(/%2f|%5c/i) || decoded.match?(/[[:cntrl:]]/) ||
+                  decoded.split('/').intersect?(%w[. ..])
 
     path
-  rescue URI::InvalidURIError
+  rescue URI::InvalidURIError, ArgumentError
     '/'
   end
 end

@@ -46,6 +46,8 @@ describe 'Platform sign-in hand-off' do
     expect(response).to redirect_to('/templates/new')
     expect(signed_in_user_id).to eq(user.id)
     expect(ActionMailer::Base.deliveries).to be_empty
+    expect(response.headers['Cache-Control']).to include('no-store')
+    expect(response.headers['Referrer-Policy']).to eq('no-referrer')
   end
 
   it 'welcomes a new person to Findem Sign on the dashboard' do
@@ -134,6 +136,12 @@ describe 'Platform sign-in hand-off' do
       '//evil.example/x' => '/',
       'https://evil.example/x' => '/',
       '/api/templates' => '/',
+      '/%61pi/templates' => '/',
+      '/templates/../api' => '/',
+      '/%2f%2fevil.example' => '/',
+      '/%5cevil.example' => '/',
+      '/templates%0a' => '/',
+      '/templates%ff' => '/',
       "/templates\n" => '/',
       '/templates?folder=2' => '/templates?folder=2'
     }.each do |next_path, landing|

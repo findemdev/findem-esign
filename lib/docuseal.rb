@@ -15,7 +15,8 @@ module Docuseal
   CHATGPT_URL = "#{PRODUCT_URL}/chat".freeze
   SUPPORT_EMAIL = 'support@findem.ai'
   # Where the sign-in page's "Sign in with Findem Studio" starts the platform's hand-off (PlatformSessions).
-  PLATFORM_SIGN_IN_URL = ENV.fetch('PLATFORM_SIGN_IN_URL', 'https://studio.findem.ai/people/sign')
+  PLATFORM_SIGN_IN_URL = ENV['FINDEM_SIGN_ENTRY_URL'].presence ||
+                         ENV.fetch('PLATFORM_SIGN_IN_URL', 'https://studio.findem.ai/people/sign')
   HOST = ENV.fetch('HOST', 'localhost')
   AATL_CERT_NAME = 'docuseal_aatl'
   CONSOLE_URL = if Rails.env.development?
