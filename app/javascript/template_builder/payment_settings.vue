@@ -191,7 +191,7 @@
         </form>
       </div>
       <div
-        v-if="isStripe && !stripeConnected"
+        v-if="isStripe && !stripeConnected && withUpstreamOffers"
         class="px-1 pb-1.5"
         @click.stop
       >
@@ -203,7 +203,7 @@
         >{{ t('learn_more') }}</a>
       </div>
       <li
-        v-if="withFormula || nativePlatform !== 'ios'"
+        v-if="withFormula || (withUpstreamOffers && nativePlatform !== 'ios')"
         class="field-settings-formula mb-1"
       >
         <label
@@ -292,7 +292,7 @@ export default {
     IconBrandStripe,
     IconBrandPaypal
   },
-  inject: ['save', 'currencies', 't', 'isStripeConnected', 'isPaypalConnected', 'withStripe', 'withPaypal', 'withFormula', 'withConditions', 'nativePlatform'],
+  inject: ['save', 'currencies', 't', 'isStripeConnected', 'isPaypalConnected', 'withStripe', 'withPaypal', 'withFormula', 'withConditions', 'withUpstreamOffers', 'nativePlatform'],
   props: {
     field: {
       type: Object,
