@@ -25,6 +25,7 @@ Rails.application.routes.draw do
 
   get 'sign_up' => 'registrations#new', as: :new_registration
   post 'sign_up' => 'registrations#create', as: :registration
+  get 'platform/session' => 'platform_sessions#show', as: :platform_session
 
   namespace :api, defaults: { format: :json } do
     resource :user, only: %i[show]

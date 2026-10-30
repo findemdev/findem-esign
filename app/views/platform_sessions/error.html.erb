@@ -1,0 +1,15 @@
+<% title, line = {
+     unauthorized: ['This sign-in link has expired', 'Links from Findem Studio work once, for a minute. Open Findem Sign from Findem Studio again.'],
+     not_found: ['Your organisation has no Findem Sign account yet', 'Findem People sets it up the first time it sends a document for signature.'],
+     conflict: ['Your email signs in to another organisation', 'An email can belong to one organisation in Findem Sign. Ask Findem support to move it.'],
+     forbidden: ['Your Findem Sign access is turned off', 'Ask an administrator of your organisation to turn it back on.']
+   }.fetch(reason) %>
+<div class="max-w-lg mx-auto px-2 mt-12 text-center space-y-4">
+  <h1 class="font-serif text-3xl font-normal"><%= title %></h1>
+  <p class="text-base-content/70"><%= line %></p>
+  <div class="pt-2">
+    <a href="<%= reason == :unauthorized ? Docuseal::PLATFORM_SIGN_IN_URL : URI.join(Docuseal::PLATFORM_SIGN_IN_URL, '/') %>" class="base-button px-6">
+      <%= reason == :unauthorized ? 'Open Findem Sign again' : 'Back to Findem Studio' %>
+    </a>
+  </div>
+</div>

@@ -2,6 +2,10 @@
 <div class="max-w-lg mx-auto px-2">
   <%= render 'devise/shared/select_server' if Docuseal.multitenant? %>
   <h1 class="font-serif text-4xl font-normal text-center mt-8"><%= t('sign_in') %></h1>
+  <% if Docuseal.platform_api_token.present? %>
+    <a href="<%= Docuseal::PLATFORM_SIGN_IN_URL %>" class="base-button w-full mt-6">Sign in with Findem Studio</a>
+    <div class="divider"><%= t('or') %></div>
+  <% end %>
   <%= form_for(resource, as: resource_name, html: { class: 'space-y-6' }, data: { turbo: params[:redir].blank? }, url: session_path(resource_name)) do |f| %>
     <%= render 'hidden_fields' %>
     <div class="space-y-2" dir="auto">
