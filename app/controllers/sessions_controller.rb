@@ -9,6 +9,19 @@ class SessionsController < Devise::SessionsController
 
   around_action :with_browser_locale
 
+  def new
+    return super unless request.get? && request.format.html? && params[:local] != '1'
+
+    entry = PlatformEntry.url_for(params[:next].presence || stored_location_for(resource_name))
+
+    return super unless entry
+
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['Referrer-Policy'] = 'no-referrer'
+
+    redirect_to entry, allow_other_host: true
+  end
+
   def create
     email = sign_in_params[:email].to_s.downcase
 

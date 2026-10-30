@@ -18,10 +18,31 @@ describe 'Platform entry', :multitenant do
     end
   end
 
-  it 'keeps local sign-in reachable, including a failed password attempt' do
+  it 'routes direct sign-in visits through the configured platform' do
     get '/sign_in'
 
+    expect(response).to redirect_to(PlatformEntry.url_for('/'))
+    expect(response.headers['Cache-Control']).to include('no-store')
+    expect(response.headers['Referrer-Policy']).to eq('no-referrer')
+  end
+
+  it 'preserves a safe return path when entering from sign-in' do
+    get '/sign_in', params: { next: '/templates?folder=2' }
+
+    expect(response).to redirect_to(PlatformEntry.url_for('/templates?folder=2'))
+  end
+
+  it 'refuses external return paths from sign-in' do
+    get '/sign_in', params: { next: '//other.example.test' }
+
+    expect(response).to redirect_to(PlatformEntry.url_for('/'))
+  end
+
+  it 'keeps explicit local sign-in reachable, including a failed password attempt' do
+    get '/sign_in', params: { local: '1' }
+
     expect(response).to have_http_status(:ok)
+    expect(response.body).to include('user[password]')
 
     post '/sign_in', params: { user: { email: user.email, password: 'incorrect' } }
 
@@ -35,6 +56,10 @@ describe 'Platform entry', :multitenant do
     get '/templates'
 
     expect(response).to have_http_status(:ok)
+
+    get '/sign_in'
+
+    expect(response).to redirect_to('/')
   end
 
   it 'preserves local authentication and the product landing without a configured entry' do
@@ -43,6 +68,11 @@ describe 'Platform entry', :multitenant do
     get '/templates'
 
     expect(response).to redirect_to('/sign_in')
+
+    get '/sign_in'
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include('user[password]')
 
     get '/'
 
@@ -53,6 +83,10 @@ describe 'Platform entry', :multitenant do
     stub_const('ENV', ENV.to_h.except('PLATFORM_API_TOKEN'))
 
     expect(PlatformEntry.url_for('/')).to be_nil
+
+    get '/sign_in'
+
+    expect(response).to have_http_status(:ok)
   end
 
   it 'keeps unauthenticated JSON requests out of the browser redirect flow' do
