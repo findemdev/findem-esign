@@ -1,4 +1,4 @@
-<% unless turbo_native_ios? %>
+<% if Docuseal.upstream_offers? && !turbo_native_ios? %>
   <toggle-on-checked data-names="is_custom_message" class="block">
     <div class="form-control">
       <%= render 'sms_settings/placeholder' %>

@@ -132,6 +132,20 @@ module Docuseal
     PRODUCT_NAME
   end
 
+  # Upstream's upgrade offers and its console, licence, community and AI-help links. A single-tenant instance can take
+  # an upstream licence through upstream's console; the shared multi-tenant instance runs no console, so its screens
+  # leave them out, as upstream's iOS app does, and help points to SUPPORT_EMAIL.
+  def upstream_offers?
+    !multitenant?
+  end
+
+  # The app tour's words; its support step points to SUPPORT_EMAIL instead of upstream's AI help and address.
+  def app_tour_i18n
+    i18n = I18n.t('app_tour')
+
+    upstream_offers? ? i18n : i18n.merge(support_description: "#{I18n.t('need_help_ask_a_question_')} #{SUPPORT_EMAIL}")
+  end
+
   def refresh_default_url_options!
     @default_url_options = nil
   end
