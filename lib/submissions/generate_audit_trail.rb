@@ -557,8 +557,9 @@ module Submissions
 
     def maybe_add_background(_canvas, _submission, _page_size); end
 
+    # The link opens e-signature settings, which need sign-in; signers on the shared instance have no account.
     def show_verify?(submission)
-      !submission.source.in?(%w[embed api])
+      !Docuseal.multitenant? && !submission.source.in?(%w[embed api])
     end
 
     def add_logo(column, _submission = nil)
