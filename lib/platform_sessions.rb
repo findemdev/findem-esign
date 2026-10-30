@@ -21,7 +21,14 @@ module PlatformSessions
   module_function
 
   def key
-    OpenSSL::HMAC.digest('SHA256', Docuseal.platform_api_token.to_s, KEY_LABEL)
+    token = Docuseal.platform_api_token.to_s
+    ats_token = Docuseal.ats_platform_api_token
+
+    if token.present? && ats_token.present? && ActiveSupport::SecurityUtils.secure_compare(token, ats_token)
+      raise Docuseal::InvalidAtsPlatformConfiguration, 'ATS platform configuration is invalid'
+    end
+
+    OpenSSL::HMAC.digest('SHA256', token, KEY_LABEL)
   end
 
   # The token's claims, once: a bad signature, audience or lifetime, an expired or reused token is refused as unauthorized.

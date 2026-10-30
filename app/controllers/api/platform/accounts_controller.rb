@@ -3,7 +3,7 @@
 module Api
   module Platform
     # Tenant accounts for the platform that runs this instance: create, or re-key by external_id.
-    # Guarded by PLATFORM_API_TOKEN; without it the route answers 404.
+    # The optional ATS credential is restricted to its external_id namespace before every operation.
     class AccountsController < ActionController::API
       wrap_parameters false
 
@@ -18,8 +18,16 @@ module Api
         render json: { error: e.record.errors.full_messages.first }, status: :unprocessable_content
       end
 
+      rescue_from Docuseal::InvalidAtsPlatformConfiguration do
+        render json: { error: 'Platform configuration is unavailable' }, status: :service_unavailable
+      end
+
       def create
         Params::PlatformAccountValidator.call(params)
+
+        if @ats_platform && !params[:external_id].to_s.match?(/\Afindem-ats:[A-Za-z0-9_.:-]{1,244}\z/)
+          return render json: { error: 'Not authorized' }, status: :forbidden
+        end
 
         account = Account.find_by(external_id: params[:external_id])
         created = account.nil?
@@ -42,12 +50,23 @@ module Api
 
       def authenticate_platform!
         token = Docuseal.platform_api_token
+        ats_token = Docuseal.ats_platform_api_token
 
-        return head :not_found if token.blank?
+        return head :not_found if token.blank? && ats_token.blank?
+
+        if token.present? && ats_token.present? && ActiveSupport::SecurityUtils.secure_compare(token, ats_token)
+          raise Docuseal::InvalidAtsPlatformConfiguration, 'ATS platform configuration is invalid'
+        end
 
         provided = request.authorization.to_s[/\ABearer\s+(\S+)\z/i, 1].to_s
 
-        return if ActiveSupport::SecurityUtils.secure_compare(provided, token)
+        if ats_token.present? && ActiveSupport::SecurityUtils.secure_compare(provided, ats_token)
+          @ats_platform = true
+
+          return
+        end
+
+        return if token.present? && ActiveSupport::SecurityUtils.secure_compare(provided, token)
 
         render json: { error: 'Not authenticated' }, status: :unauthorized
       end

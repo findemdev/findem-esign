@@ -21,5 +21,7 @@ class PlatformSessionsController < ApplicationController
     redirect_to PlatformSessions.next_path(params[:next])
   rescue PlatformSessions::Refused => e
     render :error, status: e.status, locals: { reason: e.status }
+  rescue Docuseal::InvalidAtsPlatformConfiguration
+    render :error, status: :service_unavailable, locals: { reason: :service_unavailable }
   end
 end
