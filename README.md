@@ -117,3 +117,9 @@ Unless otherwise noted, all files © 2023-2026 DocuSeal LLC.
 - [Signature Maker](https://www.docuseal.com/online-signature)
 - [Sign Document Online](https://www.docuseal.com/sign-documents-online)
 - [Fill PDF Online](https://www.docuseal.com/fill-pdf)
+
+### Platform entry
+
+Instances using `PLATFORM_API_TOKEN` can set `FINDEM_SIGN_ENTRY_URL` to their platform's browser sign-in entry (for example, `https://platform.example.test/people/sign`). Unauthenticated home and protected-page visits redirect there with a same-site `next` path. The platform returns a short-lived token through `/platform/session`; the application then establishes its own session. HTTPS is required except on localhost.
+
+`/sign_in` stays available for local accounts. Without the entry variable, the existing local authentication and landing behavior is preserved. The platform entry also takes precedence over `PLATFORM_SIGN_IN_URL` for the sign-in button.

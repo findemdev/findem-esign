@@ -3,7 +3,7 @@
   <%= render 'shared/settings_nav' %>
   <div class="flex-grow max-w-xl mx-auto">
     <h1 class="text-3xl md:text-4xl font-bold mb-4">SAML SSO</h1>
-    <%= render 'placeholder' %>
+    <%= render 'placeholder' if Docuseal.upstream_offers? %>
   </div>
   <div class="w-0 lg:w-52"></div>
 </div>

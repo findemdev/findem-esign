@@ -84,7 +84,7 @@
             </li>
           <% end %>
         <% end %>
-        <% if !Docuseal.demo? && !turbo_native_ios? && can?(:manage, EncryptedConfig) && (current_user != true_user || !current_account.linked_account_account) %>
+        <% if Docuseal.upstream_offers? && !Docuseal.demo? && !turbo_native_ios? && can?(:manage, EncryptedConfig) && (current_user != true_user || !current_account.linked_account_account) %>
           <li>
             <%= content_for(:pro_link) || link_to(Docuseal.multitenant? ? console_redirect_index_path(redir: "#{Docuseal::CONSOLE_URL}/plans") : "#{Docuseal::CLOUD_URL}/sign_up?#{{ redir: "#{Docuseal::CONSOLE_URL}/on_premises" }.to_query}", class: 'text-base hover:bg-base-300', data: { turbo: false }) do %>
               <%= t('plans') %>
@@ -93,14 +93,14 @@
           </li>
         <% end %>
         <% if !Docuseal.demo? && can?(:manage, EncryptedConfig) && (current_user == true_user || current_account.testing?) %>
-          <% unless turbo_native_app? %>
+          <% if Docuseal.upstream_offers? && !turbo_native_app? %>
             <li>
               <%= link_to Docuseal.multitenant? ? console_redirect_index_path(redir: "#{Docuseal::CONSOLE_URL}#{'/test' if current_account.testing?}/api") : "#{Docuseal::CONSOLE_URL}/on_premises", class: 'text-base hover:bg-base-300', data: { turbo: false } do %>
                 <% if Docuseal.multitenant? %> API <% else %> <%= t('console') %> <% end %>
               <% end %>
             </li>
           <% end %>
-          <% if Docuseal.multitenant? && !turbo_native_app? %>
+          <% if Docuseal.upstream_offers? && Docuseal.multitenant? && !turbo_native_app? %>
             <li>
               <%= link_to console_redirect_index_path(redir: "#{Docuseal::CONSOLE_URL}#{'/test' if current_account.testing?}/embedding/form"), class: 'text-base hover:bg-base-300', data: { turbo: false } do %>
                 <%= t('embedding') %>
@@ -141,6 +141,7 @@
           <div class="text-sm mt-3">
             <%= t('need_help_ask_a_question_') %>
           </div>
+          <% if Docuseal.upstream_offers? %>
           <div class="flex mt-3 space-x-3">
             <div class="tooltip tooltip-no-touch" data-tip="GitHub">
               <a href="<%= Docuseal::GITHUB_URL %>" target="_blank" class="btn btn-circle btn-primary btn-md">
@@ -160,10 +161,14 @@
               </div>
             <% end %>
           </div>
+          <% end %>
         <% end %>
         <a href="mailto:<%= Docuseal::SUPPORT_EMAIL %>" target="_blank" class="w-full block mt-4 underline">
           <%= Docuseal::SUPPORT_EMAIL %>
         </a>
+        <% unless Docuseal.upstream_offers? %>
+          <div class="mt-4 [&>div]:px-0 [&>div]:text-left"><%= render 'shared/powered_by' %></div>
+        <% end %>
         <% if Docuseal.version.present? && !Docuseal.multitenant? && can?(:manage, EncryptedConfig) %>
           <a href="https://github.com/docusealco/docuseal/releases" target="_blank" class="badge badge-outline text-xs block mx-auto mt-4">
             v<%= Docuseal.version %>

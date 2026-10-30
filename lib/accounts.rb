@@ -23,6 +23,8 @@ module Accounts
 
     testing_account = account.dup.tap { |a| a.name = "Testing - #{a.name}" }
     testing_account.uuid = SecureRandom.uuid
+    # external_id is unique and names the tenant; the testing account links through AccountLinkedAccount.
+    testing_account.external_id = nil
 
     ApplicationRecord.transaction do
       account.testing_accounts << testing_account

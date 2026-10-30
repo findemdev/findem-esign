@@ -1030,6 +1030,7 @@ export default {
       isPaypalConnected: this.isPaypalConnected,
       withFormula: this.withFormula,
       withConditions: this.withConditions,
+      withUpstreamOffers: this.withUpstreamOffers,
       nativePlatform: this.nativePlatform,
       isMobile: this.isMobile,
       withCustomFields: this.withCustomFields,
@@ -1335,6 +1336,11 @@ export default {
       default: false
     },
     withConditions: {
+      type: Boolean,
+      required: false,
+      default: false
+    },
+    withUpstreamOffers: {
       type: Boolean,
       required: false,
       default: false

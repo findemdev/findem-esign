@@ -8,6 +8,9 @@ class PlatformSessionsController < ApplicationController
   skip_authorization_check
 
   def show
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['Referrer-Policy'] = 'no-referrer'
+
     return render 'errors/404', status: :not_found, layout: false if Docuseal.platform_api_token.blank?
 
     user = PlatformSessions.user_for!(PlatformSessions.verify!(params[:token]))
