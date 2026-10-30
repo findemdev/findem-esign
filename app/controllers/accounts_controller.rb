@@ -52,7 +52,6 @@ class AccountsController < ApplicationController
     # The platform manages its accounts; archiving one here would lock its tenant out.
     raise CanCan::AccessDenied if current_account.external_id? || true_user.account.external_id?
 
-    true_user.skip_reconfirmation!
     true_user.update!(locked_at: Time.current, archived_at: Time.current,
                       email: true_user.email.sub('@', '+removed@'))
     true_user.account.update!(archived_at: Time.current)
