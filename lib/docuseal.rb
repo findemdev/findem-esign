@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Docuseal
+  InvalidAtsPlatformConfiguration = Class.new(StandardError)
   # Findem Sign: this instance is Findem's e-signature service (a fork of DocuSeal, AGPL-3.0; source at SOURCE_URL).
   PRODUCT_URL = 'https://www.findem.ai'
   SOURCE_URL = 'https://github.com/findemdev/findem-esign'
@@ -69,9 +70,41 @@ module Docuseal
     multitenant? && ENV['ALLOW_SIGNUP'] == 'true'
   end
 
-  # Bearer token of POST /api/platform/accounts; without it the route answers 404.
+  # Unrestricted platform credential, retained for the existing People integration.
   def platform_api_token
     ENV['PLATFORM_API_TOKEN'].presence
+  end
+
+  # Separate ATS credential: never read the shared People secret or accept it as a fallback.
+  def ats_platform_api_token
+    path = ENV['ATS_PLATFORM_CONFIG_FILE'].presence
+
+    return if path.nil?
+
+    unless path.start_with?('/') && path.length <= 4096 && path.exclude?("\0")
+      raise InvalidAtsPlatformConfiguration, 'ATS platform configuration is invalid'
+    end
+
+    File.open(path, File::RDONLY | File::NOFOLLOW | File::NONBLOCK) do |file|
+      stat = file.stat
+
+      unless stat.file? && stat.uid == Process.euid && (stat.mode & 0o777) == 0o400
+        raise InvalidAtsPlatformConfiguration, 'ATS platform configuration is invalid'
+      end
+
+      bytes = file.read(8193).to_s
+      config = JSON.parse(bytes)
+      token = config['platform_token'] if config.is_a?(Hash)
+
+      unless bytes.bytesize <= 8192 && config.is_a?(Hash) && config.keys == ['platform_token'] &&
+             token.is_a?(String) && token.match?(/\A[\x21-\x7e]{16,4096}\z/)
+        raise InvalidAtsPlatformConfiguration, 'ATS platform configuration is invalid'
+      end
+
+      token
+    end
+  rescue SystemCallError, IOError, JSON::ParserError, ArgumentError
+    raise InvalidAtsPlatformConfiguration, 'ATS platform configuration is invalid'
   end
 
   def advanced_formats?
