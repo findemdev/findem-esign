@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'tmpdir'
+
 describe 'Platform accounts API' do
   let(:platform_token) { 'platform-token-123' }
   let(:headers) { { 'Authorization' => "Bearer #{platform_token}", 'Content-Type' => 'application/json' } }
@@ -23,7 +25,7 @@ describe 'Platform accounts API' do
   end
 
   before do
-    stub_const('ENV', ENV.to_h.merge('PLATFORM_API_TOKEN' => platform_token))
+    stub_const('ENV', ENV.to_h.except('ATS_PLATFORM_CONFIG_FILE').merge('PLATFORM_API_TOKEN' => platform_token))
   end
 
   describe 'POST /api/platform/accounts' do
@@ -187,6 +189,181 @@ describe 'Platform accounts API' do
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.parsed_body['error']).to eq('Email has already been taken')
+    end
+
+    context 'with a separately scoped ATS credential' do
+      let(:ats_token) { 'synthetic-ats-platform-token' }
+      let(:ats_headers) { headers.merge('Authorization' => "Bearer #{ats_token}") }
+      let(:ats_body) { body.merge(external_id: "findem-ats:#{external_id}", email: "ats+#{external_id}@findem.ai") }
+      let(:directory) { Dir.mktmpdir('ats-platform-request-') }
+      let(:config_path) { File.join(directory, 'config.json') }
+
+      before do
+        File.write(config_path, { platform_token: ats_token }.to_json)
+        File.chmod(0o400, config_path)
+        stub_const('ENV', ENV.to_h.merge('ATS_PLATFORM_CONFIG_FILE' => config_path))
+      end
+
+      after { FileUtils.remove_entry(directory) }
+
+      it 'creates and rekeys an ATS account while preserving the same account, user and webhook' do
+        post('/api/platform/accounts', params: ats_body.to_json, headers: ats_headers)
+
+        expect(response).to have_http_status(:created)
+
+        first = response.parsed_body
+        changed_webhook = webhook_params.merge(secret: { 'X-Findem-Webhook' => 'ats-replacement-secret' })
+
+        expect do
+          post('/api/platform/accounts', params: ats_body.merge(webhook: changed_webhook).to_json, headers: ats_headers)
+        end.not_to(change { [Account.count, User.count, WebhookUrl.count] })
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body.slice('account_id', 'user_id')).to eq(first.slice('account_id', 'user_id'))
+        expect(response.parsed_body['api_token']).not_to eq(first['api_token'])
+        expect(Account.find(first['account_id']).webhook_urls.first.secret).to eq(changed_webhook[:secret])
+        expect(ActionMailer::Base.deliveries).to be_empty
+      end
+
+      it 'keeps the existing global token able to provision People accounts' do
+        post('/api/platform/accounts', params: body.to_json, headers:)
+
+        expect(response).to have_http_status(:created)
+        expect(Account.find(response.parsed_body['account_id']).external_id).to eq(external_id)
+      end
+
+      it 'works with only the scoped credential configured and rejects missing or wrong credentials' do
+        stub_const('ENV', ENV.to_h.except('PLATFORM_API_TOKEN'))
+
+        attempts = [ats_headers.except('Authorization'), headers, headers.merge('Authorization' => 'Bearer wrong')]
+
+        attempts.each do |invalid_headers|
+          post('/api/platform/accounts', params: ats_body.to_json, headers: invalid_headers)
+
+          expect(response).to have_http_status(:unauthorized)
+          expect(Account.count).to eq(0)
+        end
+
+        post('/api/platform/accounts', params: ats_body.to_json, headers: ats_headers)
+
+        expect(response).to have_http_status(:created)
+      end
+
+      it 'rejects every non-ATS or empty namespace before creating any records' do
+        [external_id, 'findem-ats:', 'Findem-ats:org', 'findem-atsx:org', 'prefix-findem-ats:org'].each do |outside|
+          expect do
+            post('/api/platform/accounts', params: ats_body.merge(external_id: outside).to_json, headers: ats_headers)
+          end.not_to(change { [Account.count, User.count, WebhookUrl.count, AccessToken.count] })
+
+          expect(response).to have_http_status(:forbidden)
+          expect(response.parsed_body).to eq('error' => 'Not authorized')
+        end
+      end
+
+      it 'bounds the namespace suffix at the existing external ID maximum' do
+        post('/api/platform/accounts',
+             params: ats_body.merge(external_id: "findem-ats:#{'x' * 245}").to_json,
+             headers: ats_headers)
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(Account.count).to eq(0)
+
+        post('/api/platform/accounts',
+             params: ats_body.merge(external_id: "findem-ats:#{'x' * 244}").to_json,
+             headers: ats_headers)
+
+        expect(response).to have_http_status(:created)
+      end
+
+      it 'cannot rekey or change a People account by supplying its external ID, email or numeric refs' do
+        post('/api/platform/accounts', params: body.to_json, headers:)
+
+        people = response.parsed_body
+        account = Account.find(people['account_id'])
+        user = User.find(people['user_id'])
+        before = [account.attributes, user.attributes, account.webhook_urls.first.attributes]
+        attempted = body.merge(name: 'Replaced', account_id: account.id, user_id: user.id,
+                               webhook: webhook_params.merge(secret: { 'X-Findem-Webhook' => 'replaced' }))
+
+        post('/api/platform/accounts', params: attempted.to_json, headers: ats_headers)
+
+        expect(response).to have_http_status(:forbidden)
+        expect([account.reload.attributes, user.reload.attributes, account.webhook_urls.first.reload.attributes])
+          .to eq(before)
+        expect(user.access_token.reload.token).to eq(people['api_token'])
+        expect(Account.count).to eq(1)
+        expect(User.count).to eq(1)
+      end
+
+      it 'rolls back a scoped create when a normalized email belongs to another account' do
+        post('/api/platform/accounts', params: body.to_json, headers:)
+
+        people = response.parsed_body
+        user = User.find(people['user_id'])
+        before = [user.account.attributes, user.attributes, user.account.webhook_urls.first.attributes]
+        attempted = ats_body.merge(email: " #{body[:email].upcase} ", account_id: people['account_id'],
+                                   user_id: user.id)
+
+        expect do
+          post('/api/platform/accounts', params: attempted.to_json, headers: ats_headers)
+        end.not_to(change { [Account.count, User.count, WebhookUrl.count, AccessToken.count] })
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.parsed_body['error']).to eq('Email has already been taken')
+        expect(
+          [user.account.reload.attributes, user.reload.attributes, user.account.webhook_urls.first.reload.attributes]
+        ).to eq(before)
+        expect(user.access_token.reload.token).to eq(people['api_token'])
+        expect(Account.find_by(external_id: ats_body[:external_id])).to be_nil
+      end
+
+      it 'ignores foreign numeric refs when the scoped external ID and email are new' do
+        person = create(:user)
+        prior_token = person.access_token.token
+
+        post('/api/platform/accounts',
+             params: ats_body.merge(account_id: person.account_id, user_id: person.id).to_json,
+             headers: ats_headers)
+
+        expect(response).to have_http_status(:created)
+        expect(response.parsed_body['account_id']).not_to eq(person.account_id)
+        expect(response.parsed_body['user_id']).not_to eq(person.id)
+        expect(person.access_token.reload.token).to eq(prior_token)
+      end
+
+      it 'fails closed for equal scoped and global tokens without falling back to global scope' do
+        stub_const('ENV', ENV.to_h.merge('PLATFORM_API_TOKEN' => ats_token))
+
+        [body, ats_body].each do |params|
+          post('/api/platform/accounts', params: params.to_json, headers: ats_headers)
+
+          expect(response).to have_http_status(:service_unavailable)
+          expect(response.parsed_body).to eq('error' => 'Platform configuration is unavailable')
+          expect(Account.count).to eq(0)
+        end
+      end
+
+      it 'does not fall back to the global token with an explicitly missing or malformed file' do
+        [File.join(directory, 'missing.json'), config_path].each do |path|
+          File.chmod(0o600, config_path)
+          File.write(config_path, '{private-invalid-config')
+          File.chmod(0o400, config_path)
+          stub_const('ENV', ENV.to_h.merge('ATS_PLATFORM_CONFIG_FILE' => path))
+
+          post('/api/platform/accounts', params: body.to_json, headers:)
+
+          expect(response).to have_http_status(:service_unavailable)
+          expect(response.parsed_body).to eq('error' => 'Platform configuration is unavailable')
+          expect(Account.count).to eq(0)
+        end
+      end
+
+      it 'does not grant the scoped platform token access to ordinary tenant APIs' do
+        get '/api/templates', headers: { 'X-Auth-Token' => ats_token }
+
+        expect(response).to have_http_status(:unauthorized)
+        expect(Account.count).to eq(0)
+      end
     end
   end
 end
