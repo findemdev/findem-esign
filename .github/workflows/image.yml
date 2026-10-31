@@ -18,6 +18,7 @@ jobs:
         run: |
           set -euo pipefail
           authfile=$(mktemp)
+          printf '{}\n' > "$authfile"
           trap 'rm -f "$authfile"' EXIT
           printf '%s' "$GH_TOKEN" | skopeo login --authfile "$authfile" --username "$GH_USER" --password-stdin ghcr.io
           skopeo copy --src-authfile "$authfile" --all --preserve-digests docker://ghcr.io/findemdev/findem-esign@sha256:8d7f2c1bab50055ce6ff1d50eb55dc446388a9a8204c8e88a9c02b19cbb30f88 dir:sign-image
