@@ -1,89 +1,35 @@
-# Publishes the Findem Sign image the deploy repo pins (deploy_utils/people-engines/image-lock.json, findemSign):
-# every push to master and any manual run builds linux/amd64 and linux/arm64 (the Swarm nodes are ARM64) and pushes
-# ghcr.io/findemdev/findem-esign tagged with the commit (sha-<short>) and the branch; the run then scans the pushed
-# image and fails on a fixable CRITICAL finding, so a bad build never becomes a pin. The upstream docker.yml stays for
-# semver tags and the upstream Docker Hub repository; it is not used here.
-name: Publish image
-
+name: Export published Sign image
 on:
-  push:
-    branches: [master]
   workflow_dispatch:
-
 permissions:
   contents: read
-  packages: write
-
-concurrency:
-  group: image-${{ github.ref }}
-  cancel-in-progress: false
-
+  packages: read
 jobs:
-  publish:
+  export:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Image tags
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=sha,prefix=sha-,format=short
-            type=ref,event=branch
-          labels: |
-            org.opencontainers.image.title=Findem Sign
-            org.opencontainers.image.description=E-signature service of Findem People (a DocuSeal fork, AGPL-3.0)
-
-      - name: Version file
+      - name: Install registry copy tool
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq skopeo
+      - name: Export immutable published image
         env:
-          SHA: ${{ github.sha }}
-        run: echo "${SHA:0:12}" > .version
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_USER: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          authfile=$(mktemp)
+          trap 'rm -f "$authfile"' EXIT
+          printf '%s' "$GH_TOKEN" | skopeo login --authfile "$authfile" --username "$GH_USER" --password-stdin ghcr.io
+          skopeo copy --src-authfile "$authfile" --all --preserve-digests docker://ghcr.io/findemdev/findem-esign@sha256:8d7f2c1bab50055ce6ff1d50eb55dc446388a9a8204c8e88a9c02b19cbb30f88 dir:sign-image
+          test "$(sha256sum sign-image/manifest.json | cut -d' ' -f1)" = 8d7f2c1bab50055ce6ff1d50eb55dc446388a9a8204c8e88a9c02b19cbb30f88
+          tar -cf sign-image.tar sign-image
+          sha256sum sign-image.tar > sign-image.tar.sha256
+      - name: Save release transfer artifact
+        uses: actions/upload-artifact@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push
-        id: build
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: false
-
-      - name: Scan the pushed image
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
-          format: table
-          severity: CRITICAL
-          ignore-unfixed: true
-          exit-code: "1"
-        env:
-          TRIVY_USERNAME: ${{ github.actor }}
-          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Digest to pin
-        env:
-          DIGEST: ${{ steps.build.outputs.digest }}
-        run: echo "ghcr.io/${{ github.repository }}@${DIGEST}" | tee -a "$GITHUB_STEP_SUMMARY"
+          name: sign-image-94dfff8
+          path: |
+            sign-image.tar
+            sign-image.tar.sha256
+          retention-days: 1
+          compression-level: 0
