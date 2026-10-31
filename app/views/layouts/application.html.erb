@@ -1,5 +1,6 @@
+<% studio_workspace = signed_in? && !turbo_native_app? %>
 <!DOCTYPE html>
-<html data-theme="docuseal" lang="<%= I18n.locale %>">
+<html data-theme="<%= studio_workspace ? 'studio' : 'docuseal' %>" lang="<%= I18n.locale %>">
   <head>
     <%= render 'layouts/head_tags' %>
     <% if Docuseal.enable_pwa? %>
@@ -20,7 +21,7 @@
     <% end %>
     <%= stylesheet_pack_tag 'application', media: 'all', data: { turbo_track: 'dynamic' } %>
   </head>
-  <body>
+  <body class="<%= 'studio-workspace' if studio_workspace %>">
     <% if params[:modal].present? %>
       <% modal_uri = Addressable::URI.parse(params[:modal]) %>
       <% url_params = Rails.application.routes.recognize_path(modal_uri.path, method: :get) %>
@@ -32,10 +33,17 @@
       <turbo-frame id="modal"></turbo-frame>
     <% end %>
     <turbo-frame id="drawer"></turbo-frame>
-    <%= render turbo_native_app? ? 'shared/native_navbar' : 'shared/navbar' %>
-    <% if flash.present? %><%= render 'shared/flash' %><% end %>
-    <div class="max-w-6xl mx-auto px-4 md:px-2 mb-8">
-      <%= yield %>
+    <div class="<%= 'studio-shell' if studio_workspace %>">
+      <% if studio_workspace %>
+        <%= render 'shared/workspace_nav' %>
+      <% end %>
+      <div class="<%= 'studio-main' if studio_workspace %>">
+        <%= render turbo_native_app? ? 'shared/native_navbar' : 'shared/navbar' %>
+        <% if flash.present? %><%= render 'shared/flash' %><% end %>
+        <main id="workspace_content" class="<%= studio_workspace ? 'studio-page' : 'max-w-6xl mx-auto px-4 md:px-2 mb-8' %>">
+          <%= yield %>
+        </main>
+      </div>
     </div>
     <%= render 'shared/body_scripts' %>
   </body>

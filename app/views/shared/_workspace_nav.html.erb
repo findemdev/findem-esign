@@ -1,0 +1,39 @@
+<aside class="studio-rail">
+  <a href="#workspace_content" class="studio-skip"><%= t('skip_to_content', default: 'Skip to content') %></a>
+  <div class="studio-rail-brand">
+    <% if studio_url = PlatformEntry.home_url %>
+      <a href="<%= studio_url %>" aria-label="<%= t('back_to_studio', default: 'Back to Studio') %>" data-turbo="false">
+        <%= render 'shared/lockup', product: 'Studio', class: 'text-[27px]' %>
+      </a>
+    <% else %>
+      <a href="<%= root_path %>"><%= render 'shared/lockup', class: 'text-[27px]' %></a>
+    <% end %>
+    <span class="studio-app-label"><%= t('esignature', default: 'E-signature') %></span>
+  </div>
+  <nav class="studio-rail-links" aria-label="<%= Docuseal.product_name %>">
+    <%= link_to templates_path, class: 'studio-nav-item', aria: { current: ('page' unless request.path.start_with?('/settings', '/submissions')) } do %>
+      <%= svg_icon('files', class: 'w-4 h-4') %>
+      <span><%= t('templates') %></span>
+    <% end %>
+    <%= link_to submissions_path, class: 'studio-nav-item', aria: { current: ('page' if request.path.start_with?('/submissions')) } do %>
+      <%= svg_icon('send', class: 'w-4 h-4') %>
+      <span><%= t('submissions') %></span>
+    <% end %>
+    <%= link_to settings_profile_index_path, class: 'studio-nav-item', aria: { current: ('page' if request.path.start_with?('/settings')) } do %>
+      <%= svg_icon('settings', class: 'w-4 h-4') %>
+      <span><%= t('settings') %></span>
+    <% end %>
+  </nav>
+  <div class="studio-rail-foot">
+    <% if studio_url %>
+      <a href="<%= studio_url %>" class="studio-nav-item" data-turbo="false">
+        <%= svg_icon('arrow_left', class: 'w-4 h-4') %>
+        <span><%= t('back_to_studio', default: 'Back to Studio') %></span>
+      </a>
+    <% end %>
+    <div class="studio-workspace-name">
+      <%= svg_icon('building', class: 'w-4 h-4') %>
+      <span><%= current_account.name %></span>
+    </div>
+  </div>
+</aside>

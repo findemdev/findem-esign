@@ -4,7 +4,7 @@
 <% end %>
 <% is_show_tabs = (@pagy.count.nil? || @pagy.count >= 5) || params[:status].present? || filter_params.present? %>
 <% if Docuseal.demo? %><%= render 'shared/demo_alert' %><% end %>
-<div class="group/header flex justify-between items-center w-full <%= 'mb-4' unless turbo_native_app? %>">
+<div class="studio-collection-header group/header flex justify-between items-center w-full <%= 'mb-4' unless turbo_native_app? %>">
   <% unless turbo_native_app? %>
     <div class="flex items-center flex-grow min-w-0 max-md:group-has-[search-input:focus-within]/header:hidden <%= 'max-md:hidden' if params[:q].present? %>">
       <div class="mr-2">
@@ -24,9 +24,9 @@
         <%= render 'templates/upload_button' %>
       </span>
       <open-modal-mobile data-disabled="<%= !Docuseal.multitenant? %>" class="flex">
-        <%= link_to new_template_path, class: 'white-button !border gap-2', data: { turbo_frame: :modal, native_modal: :medium } do %>
+        <%= link_to new_template_path, class: 'studio-create white-button !border gap-2', data: { turbo_frame: :modal, native_modal: :medium } do %>
           <%= svg_icon('plus', class: 'w-6 h-6 stroke-2') %>
-          <span class="hidden md:block"><%= t('create') %></span>
+          <span class="studio-create-label hidden md:block"><%= t('create') %></span>
         <% end %>
       </open-modal-mobile>
     <% end %>

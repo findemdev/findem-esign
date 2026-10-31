@@ -4,6 +4,12 @@
 module PlatformEntry
   module_function
 
+  def home_url
+    entry = url_for('/')
+
+    URI.join(entry, '/').to_s if entry
+  end
+
   def url_for(path)
     return if Docuseal.platform_api_token.blank? || ENV['FINDEM_SIGN_ENTRY_URL'].blank?
 

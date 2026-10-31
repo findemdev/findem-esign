@@ -62,6 +62,15 @@ describe 'Platform entry', :multitenant do
     expect(response).to redirect_to('/')
   end
 
+  it 'links the workspace back to the configured platform origin without handoff parameters' do
+    sign_in user
+    get '/templates'
+
+    expect(response.body).to include('data-theme="studio"')
+    expect(response.body).to include('href="https://platform.example.test/"')
+    expect(PlatformEntry.home_url).to eq('https://platform.example.test/')
+  end
+
   it 'preserves local authentication and the product landing without a configured entry' do
     stub_const('ENV', ENV.to_h.except('FINDEM_SIGN_ENTRY_URL'))
 
@@ -110,6 +119,7 @@ describe 'Platform entry', :multitenant do
       stub_const('ENV', ENV.to_h.merge('FINDEM_SIGN_ENTRY_URL' => invalid))
 
       expect(PlatformEntry.url_for('/')).to be_nil
+      expect(PlatformEntry.home_url).to be_nil
     end
   end
 end

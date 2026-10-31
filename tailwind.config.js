@@ -34,6 +34,27 @@ module.exports = {
           '--tab-border': '2px',
           '--tab-radius': '.5rem'
         }
+      },
+      {
+        // Authenticated workspace: Studio's shipped navy palette and control geometry.
+        // The document signing surface retains the original theme above.
+        studio: {
+          'color-scheme': 'light',
+          primary: '#f0f2f5',
+          secondary: '#f5efc0',
+          accent: '#e9cf3b',
+          neutral: '#19213d',
+          'neutral-focus': '#0f172e',
+          'base-100': '#ffffff',
+          'base-200': '#f7f8fa',
+          'base-300': '#e3e6ea',
+          'base-content': '#19213d',
+          '--rounded-box': '0.5rem',
+          '--rounded-btn': '0.5rem',
+          '--btn-text-case': 'none',
+          '--tab-border': '2px',
+          '--tab-radius': '.5rem'
+        }
       }
     ]
   }
