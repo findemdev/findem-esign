@@ -3,6 +3,18 @@
     <label class="label justify-center" for="reason"><%= t(:notify_the_sender_with_the_reason_you_declined) %></label>
     <%= f.text_area :reason, required: true, class: 'base-input w-full py-2 h-40', dir: 'auto', placeholder: t('provide_a_reason'), style: 'height: 200px', rows: '10' %>
   </div>
+  <% if local_assigns[:consent] %>
+    <div class="form-control mt-4">
+      <label class="label cursor-pointer justify-start gap-2" for="withdraw_consent">
+        <%= check_box_tag :withdraw_consent, '1', false, class: 'base-checkbox', id: 'withdraw_consent' %>
+        <span class="label-text" dir="auto"><%= t(:withdraw_my_consent_to_use_electronic_records_and_signatures) %></span>
+      </label>
+      <details class="text-sm mt-1">
+        <summary class="cursor-pointer" dir="auto"><%= t(:electronic_records_and_signature_disclosure) %></summary>
+        <div class="mt-2 max-h-48 overflow-y-auto whitespace-pre-line" dir="auto"><%= consent['text'] %></div>
+      </details>
+    </div>
+  <% end %>
   <toggle-submit dir="auto" class="form-control mt-4">
     <%= f.button button_title(title: t(:decline)), class: 'base-button' %>
   </toggle-submit>

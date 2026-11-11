@@ -5,6 +5,7 @@ module Params
     EXTERNAL_ID_REGEXP = /\A[\w.:-]{1,255}\z/
     URL_REGEXP = %r{\Ahttps?://\S+\z}i
     HEADER_NAME_REGEXP = /\A[\w-]+\z/
+    CONSENT_VERSION_REGEXP = %r{\A[\w.:/+-]{1,100}\z}
 
     def call
       required(params, :external_id)
@@ -24,6 +25,16 @@ module Params
         type(webhook, :events, Array)
         secret_headers(webhook)
         events(webhook)
+      end
+
+      type(params, :consent, Hash)
+
+      in_path(params, [:consent], skip_blank: true) do |consent|
+        required(consent, :version)
+        type(consent, :version, String)
+        format(consent, :version, CONSENT_VERSION_REGEXP, message: 'version is invalid')
+        required(consent, :text)
+        type(consent, :text, String)
       end
     end
 

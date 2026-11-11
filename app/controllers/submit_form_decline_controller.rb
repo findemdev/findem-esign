@@ -22,6 +22,8 @@ class SubmitFormDeclineController < ApplicationController
       @submitter.update!(declined_at: Time.current, values: @submitter.preferences['default_values'] || {})
 
       SubmissionEvents.create_with_tracking_data(@submitter, 'decline_form', request, { reason: params[:reason] })
+
+      maybe_withdraw_consent
     end
 
     user = @submitter.submission.created_by_user || @submitter.template.author
@@ -37,6 +39,17 @@ class SubmitFormDeclineController < ApplicationController
   end
 
   private
+
+  def maybe_withdraw_consent
+    return if params[:withdraw_consent] != '1'
+
+    consent = Submitters.signing_consent(@submitter.account)
+
+    return unless consent
+
+    SubmissionEvents.create_with_tracking_data(@submitter, 'withdraw_consent', request,
+                                               { version: consent['version'], sha256: consent['sha256'] })
+  end
 
   def declining_disabled?
     @submitter.account.account_configs.find_by(key: AccountConfig::ALLOW_TO_DECLINE_KEY)&.value == false

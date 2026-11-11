@@ -509,6 +509,11 @@ module Submissions
                    versions.rfind { |v| v.created_at <= event.event_timestamp }&.then { |v| v.name || v.phone }
             from = TextUtils.maybe_rtl_reverse(from.to_s.squish)
             I18n.t('submission_event_names.delegate_form_by_html', from:, to: event.data['email'])
+          elsif event.event_type == 'accept_consent'
+            [
+              I18n.t('submission_event_names.accept_consent_by_html', submitter_name:),
+              "<b>#{I18n.t(:disclosure_version)}</b> #{event.data['version'].to_s.squish}"
+            ].join("\n")
           elsif event.event_type.include?('send_')
             I18n.t("submission_event_names.#{event.event_type}_to_html", submitter_name:)
           else

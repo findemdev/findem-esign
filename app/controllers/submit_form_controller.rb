@@ -12,7 +12,7 @@ class SubmitFormController < ApplicationController
   before_action :maybe_render_locked_page, only: :show
   before_action :maybe_require_link_2fa, only: %i[show]
 
-  CONFIG_KEYS = [].freeze
+  CONFIG_KEYS = [AccountConfig::SIGNING_CONSENT_KEY].freeze
 
   def show
     submission = @submitter.submission

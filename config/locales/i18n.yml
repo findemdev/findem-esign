@@ -966,6 +966,11 @@ en: &en
   sms: SMS
   require_email_2fa_to_open: Require email 2FA to open
   verification_required_refresh_the_page_and_pass_2fa: Verification required, refresh the page and pass 2FA.
+  consent_required_refresh_the_page_and_accept_the_disclosure: Consent required, refresh the page and accept the disclosure.
+  the_disclosure_has_changed_refresh_the_page: The disclosure has changed, refresh the page.
+  electronic_records_and_signature_disclosure: Electronic records and signature disclosure
+  withdraw_my_consent_to_use_electronic_records_and_signatures: Withdraw my consent to use electronic records and signatures
+  disclosure_version: Disclosure version
   the_sender_has_requested_a_two_factor_authentication_via_one_time_password_sent_to_your_email_html: The sender has requested two-factor authentication via a one-time password sent to your <b>%{email}</b> email.
   please_contact_the_requester_to_specify_your_email_for_two_factor_authentication: Please contact the requester to specify your email for two-factor authentication.
   rate_limit_exceeded: Rate limit exceeded
@@ -1071,6 +1076,8 @@ en: &en
     api_complete_form_by_html: '<b>Submission completed via API</b> by %{submitter_name}'
     decline_form_by_html: '<b>Form declined</b> by %{submitter_name}'
     delegate_form_by_html: '<b>Delegated</b> from %{from} to %{to}'
+    accept_consent_by_html: '<b>Electronic records consent accepted</b> by %{submitter_name}'
+    withdraw_consent_by_html: '<b>Electronic records consent withdrawn</b> by %{submitter_name}'
   import_list:
     select_worksheet: Select Worksheet
     open: Open

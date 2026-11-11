@@ -38,6 +38,7 @@ module Api
             user = find_or_create_user(account)
 
             upsert_webhook(account) if params[:webhook].present?
+            update_consent(account) if params.key?(:consent)
 
             [user, rotate_token(user)]
           end
@@ -110,6 +111,15 @@ module Api
         access_token.update!(token: SecureRandom.base58(AccessToken::TOKEN_LENGTH))
 
         access_token.token
+      end
+
+      # The electronic records disclosure signers accept before signing; null or {} removes it.
+      def update_consent(account)
+        configs = account.account_configs.where(key: AccountConfig::SIGNING_CONSENT_KEY)
+
+        return configs.destroy_all if params[:consent].blank?
+
+        configs.first_or_initialize.update!(value: params[:consent].permit(:version, :text).to_h)
       end
 
       def upsert_webhook(account)

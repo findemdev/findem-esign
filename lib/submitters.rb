@@ -230,6 +230,33 @@ module Submitters
   end
   # rubocop:enable Metrics
 
+  def signing_consent(account)
+    build_signing_consent(account.account_configs.find_by(key: AccountConfig::SIGNING_CONSENT_KEY)&.value)
+  end
+
+  # The account's disclosure, or nil when none is set; sha256 pins the exact text accepted.
+  def build_signing_consent(value)
+    return unless value.is_a?(Hash) && value['version'].is_a?(String) && value['text'].is_a?(String)
+    return if value['version'].blank? || value['text'].blank?
+
+    { 'version' => value['version'], 'text' => value['text'], 'sha256' => Digest::SHA256.hexdigest(value['text']) }
+  end
+
+  # An acceptance made before the link was delegated belongs to the previous person.
+  def consent_accepted?(submitter, consent)
+    events = submitter.submission_events.where(event_type: %w[accept_consent delegate_form]).sort_by(&:event_timestamp)
+    delegated_index = events.rindex(&:delegate_form?)
+    events = events.drop(delegated_index + 1) if delegated_index
+
+    events.any? { |e| e.data.values_at('version', 'sha256') == consent.values_at('version', 'sha256') }
+  end
+
+  def consent_pending?(submitter)
+    consent = signing_consent(submitter.account)
+
+    consent.present? && !consent_accepted?(submitter, consent)
+  end
+
   def build_document_filename(submitter, blob, filename_format)
     return blob.filename.to_s if filename_format.blank?
 

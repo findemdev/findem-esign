@@ -63,6 +63,7 @@ class AccountConfig < ApplicationRecord
   TEMPLATE_DATE_FORMATS_KEY = 'template_date_formats'
   POLICY_LINKS_KEY = 'policy_links'
   ENABLE_MCP_KEY = 'enable_mcp'
+  SIGNING_CONSENT_KEY = 'signing_consent'
 
   EMAIL_VARIABLES = {
     SUBMITTER_INVITATION_EMAIL_KEY => %w[template.name submitter.link account.name].freeze,
