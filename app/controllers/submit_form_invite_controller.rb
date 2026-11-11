@@ -50,7 +50,8 @@ class SubmitFormInviteController < ApplicationController
       !submitter.submission.template&.archived_at? &&
       !submitter.viewer? &&
       Submitters::AuthorizedForForm.call(submitter, current_user, request) &&
-      !Submitters.consent_pending?(submitter)
+      !Submitters.consent_pending?(submitter) &&
+      Submitters::AuthorizedForForm.pass_signing_turn?(submitter)
   end
 
   def filter_invite_submitters(submitter, key = 'invite_by_uuid')

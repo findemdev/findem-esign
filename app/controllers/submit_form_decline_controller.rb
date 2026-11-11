@@ -5,6 +5,7 @@ class SubmitFormDeclineController < ApplicationController
   skip_authorization_check
 
   before_action :load_submitter
+  before_action :maybe_refuse_out_of_turn
 
   def create
     return redirect_to submit_form_path(@submitter.slug) if declining_disabled? ||
@@ -57,5 +58,12 @@ class SubmitFormDeclineController < ApplicationController
 
   def load_submitter
     @submitter = Submitter.find_by!(slug: params[:submit_form_slug])
+  end
+
+  def maybe_refuse_out_of_turn
+    return if Submitters::AuthorizedForForm.pass_signing_turn?(@submitter)
+
+    # The form page runs its verification steps first, then shows the awaiting page.
+    redirect_to submit_form_path(@submitter.slug)
   end
 end
