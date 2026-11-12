@@ -167,7 +167,7 @@ class ApplicationController < ActionController::Base
       policy.font_src :self, :https, :http, :blob, :data
       policy.manifest_src :self
       policy.media_src :self
-      policy.frame_src :self
+      policy.frame_src :self, *[Docuseal.platform_origin].compact
       policy.worker_src :self, :blob
       policy.connect_src :self
 
