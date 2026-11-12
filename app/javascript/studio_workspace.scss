@@ -71,7 +71,15 @@ $studio-fields: '[class~="input-bordered"], [class~="select-bordered"], [class~=
     border-bottom: 1px solid #f0f2f5;
   }
   .studio-topbar-brand { display: none; }
-  .studio-context { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
+  .studio-context { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; font-weight: 500; white-space: nowrap; }
+  .studio-context span { overflow: hidden; text-overflow: ellipsis; }
+  .studio-context + div { flex-shrink: 0; }
+  // The platform's workspace menu and credits, framed (elements/studio_app_bar.js). The element is the bar's size in the
+  // row, nothing until the bar has something to show. A menu open inside takes the room left of and below it, over the page.
+  .studio-app-bar { position: relative; display: block; flex-shrink: 0; }
+  .studio-app-bar[data-empty] { position: absolute; opacity: 0; pointer-events: none; }
+  .studio-app-bar iframe { position: absolute; top: 0; right: 0; width: 100%; height: 100%; min-width: 1px; min-height: 28px; border: 0; background: transparent; color-scheme: light; }
+  .studio-app-bar[data-open] iframe { position: fixed; right: auto; z-index: 60; }
   .studio-topbar #account_settings_button { font-size: 14px; color: var(--studio-body); }
   .studio-topbar .dropdown > label { background: var(--studio-gold); color: var(--studio-ink); width: 32px; height: 32px; padding: 5px; }
   .studio-page { max-width: 1200px; margin: 0 auto; padding: 32px 40px 64px; }

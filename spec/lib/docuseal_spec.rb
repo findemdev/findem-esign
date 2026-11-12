@@ -23,6 +23,41 @@ RSpec.describe Docuseal do
     end
   end
 
+  describe '.platform_app_bar_url' do
+    before { stub_const('ENV', ENV.to_h.merge('PLATFORM_API_TOKEN' => 'secret')) }
+
+    it 'is the app bar on the origin the sign-in hand-off starts from' do
+      stub_const('Docuseal::PLATFORM_SIGN_IN_URL', 'https://platform.example.test:8443/people/sign?source=sign')
+
+      expect(described_class.platform_origin).to eq('https://platform.example.test:8443')
+      expect(described_class.platform_app_bar_url).to eq('https://platform.example.test:8443/embed/app-bar?app=sign')
+    end
+
+    it 'accepts plain http only on this machine' do
+      stub_const('Docuseal::PLATFORM_SIGN_IN_URL', 'http://localhost:5173/people/sign')
+
+      expect(described_class.platform_app_bar_url).to eq('http://localhost:5173/embed/app-bar?app=sign')
+
+      stub_const('Docuseal::PLATFORM_SIGN_IN_URL', 'http://platform.example.test/people/sign')
+
+      expect(described_class.platform_app_bar_url).to be_nil
+    end
+
+    it 'is nil without a platform, or with an address that names no host or carries credentials' do
+      ['https://user:pass@platform.example.test/people/sign', 'not a url', '/people/sign'].each do |entry|
+        stub_const('Docuseal::PLATFORM_SIGN_IN_URL', entry)
+
+        expect(described_class.platform_app_bar_url).to be_nil, entry
+      end
+
+      stub_const('Docuseal::PLATFORM_SIGN_IN_URL', 'https://platform.example.test/people/sign')
+      stub_const('ENV', ENV.to_h.except('PLATFORM_API_TOKEN'))
+
+      expect(described_class.platform_origin).to be_nil
+      expect(described_class.platform_app_bar_url).to be_nil
+    end
+  end
+
   describe '.platform_api_token' do
     it 'is nil when unset or blank' do
       stub_const('ENV', ENV.to_h.except('PLATFORM_API_TOKEN'))

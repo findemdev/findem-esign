@@ -29,6 +29,9 @@
           <%= link_to t('settings'), settings_profile_index_path, class: 'hidden md:inline-flex font-medium text-lg', id: 'account_settings_button' %>
         </div>
       <% end %>
+      <% if (app_bar_url = Docuseal.platform_app_bar_url) %>
+        <studio-app-bar id="studio_app_bar" class="studio-app-bar" data-turbo-permanent data-src="<%= app_bar_url %>" data-title="Workspace and credits"></studio-app-bar>
+      <% end %>
       <div class="dropdown dropdown-end">
         <label tabindex="0" class="cursor-pointer bg-base-content text-purple-300 rounded-full p-2 w-9 justify-center flex">
           <span class="text-sm align-text-top"><%= current_user.initials %></span>

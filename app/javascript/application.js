@@ -73,6 +73,7 @@ import OpenModalMobile from './elements/open_modal_mobile'
 import HistoryBack from './elements/history_back'
 import DatePlaceholder from './elements/date_placeholder'
 import FlashMessage from './elements/flash_message'
+import StudioAppBar from './elements/studio_app_bar'
 
 document.addEventListener('turbo:before-cache', () => {
   window.flash?.remove()
@@ -200,6 +201,7 @@ safeRegisterElement('open-modal-mobile', OpenModalMobile)
 safeRegisterElement('history-back', HistoryBack)
 safeRegisterElement('date-placeholder', DatePlaceholder)
 safeRegisterElement('flash-message', FlashMessage)
+safeRegisterElement('studio-app-bar', StudioAppBar)
 
 safeRegisterElement('template-builder', class extends HTMLElement {
   connectedCallback () {

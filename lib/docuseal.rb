@@ -75,6 +75,28 @@ module Docuseal
     ENV['PLATFORM_API_TOKEN'].presence
   end
 
+  # The platform's own origin, from where its sign-in hand-off starts (PLATFORM_SIGN_IN_URL): https, or plain http on
+  # this machine. Nil without a platform.
+  def platform_origin
+    return if platform_api_token.blank?
+
+    uri = URI.parse(PLATFORM_SIGN_IN_URL)
+    local_http = uri.scheme == 'http' && %w[localhost 127.0.0.1 [::1]].include?(uri.host)
+
+    return unless uri.host.present? && uri.userinfo.nil? && (uri.scheme == 'https' || local_http)
+
+    URI.join(uri, '/').to_s.delete_suffix('/')
+  rescue URI::InvalidURIError
+    nil
+  end
+
+  # The platform's app bar for this product (its workspace menu and credits), framed in the signed-in top bar.
+  def platform_app_bar_url
+    origin = platform_origin
+
+    "#{origin}/embed/app-bar?app=sign" if origin
+  end
+
   # Separate ATS credential: never read the shared People secret or accept it as a fallback.
   def ats_platform_api_token
     path = ENV['ATS_PLATFORM_CONFIG_FILE'].presence
