@@ -49,7 +49,7 @@ class SubmitFormDeclineController < ApplicationController
     return unless consent
 
     SubmissionEvents.create_with_tracking_data(@submitter, 'withdraw_consent', request,
-                                               { version: consent['version'], sha256: consent['sha256'] })
+                                               Submitters.consent_event_data(consent))
   end
 
   def declining_disabled?

@@ -971,6 +971,7 @@ en: &en
   electronic_records_and_signature_disclosure: Electronic records and signature disclosure
   withdraw_my_consent_to_use_electronic_records_and_signatures: Withdraw my consent to use electronic records and signatures
   disclosure_version: Disclosure version
+  disclosure_sha256: Disclosure SHA-256
   the_sender_has_requested_a_two_factor_authentication_via_one_time_password_sent_to_your_email_html: The sender has requested two-factor authentication via a one-time password sent to your <b>%{email}</b> email.
   please_contact_the_requester_to_specify_your_email_for_two_factor_authentication: Please contact the requester to specify your email for two-factor authentication.
   rate_limit_exceeded: Rate limit exceeded

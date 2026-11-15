@@ -512,7 +512,8 @@ module Submissions
           elsif event.event_type == 'accept_consent'
             [
               I18n.t('submission_event_names.accept_consent_by_html', submitter_name:),
-              "<b>#{I18n.t(:disclosure_version)}</b> #{event.data['version'].to_s.squish}"
+              "<b>#{I18n.t(:disclosure_version)}</b> #{event.data['version'].to_s.squish}",
+              "<b>#{I18n.t(:disclosure_sha256)}</b> #{event.data['sha256'].to_s.squish}"
             ].join("\n")
           elsif event.event_type.include?('send_')
             I18n.t("submission_event_names.#{event.event_type}_to_html", submitter_name:)
@@ -543,7 +544,39 @@ module Submissions
 
       composer.table(events_data, cell_style: { padding: [0, 0, 12, 0], border: { width: 0 } }) if events_data.present?
 
+      add_accepted_disclosures(composer, submission, divider)
+
       composer.document
+    end
+
+    # Each disclosure text signers accepted, as recorded on the acceptance, so the log stands after it changes.
+    def add_accepted_disclosures(composer, submission, divider)
+      disclosures = submission.submission_events.select(&:accept_consent?).sort_by(&:event_timestamp)
+                              .filter_map { |event| Submitters.accepted_consent(event) }
+                              .uniq { |disclosure| disclosure.values_at('version', 'sha256') }
+
+      return if disclosures.empty?
+
+      composer.draw_box(divider)
+
+      composer.text(I18n.t('electronic_records_and_signature_disclosure'), font_size: 12, padding: [10, 0, 20, 0])
+
+      disclosures.each do |disclosure|
+        composer.formatted_text(
+          [
+            { text: "#{I18n.t(:disclosure_version)} ", font: [FONT_NAME, { variant: :bold }] },
+            "#{disclosure['version'].squish}\n",
+            { text: "#{I18n.t(:disclosure_sha256)} ", font: [FONT_NAME, { variant: :bold }] },
+            disclosure['sha256']
+          ], line_spacing: 1.3, padding: [0, 0, 8, 0]
+        )
+
+        text = TextUtils.maybe_rtl_reverse(disclosure['text'])
+
+        composer.formatted_text([{ text: }],
+                                text_align: text.match?(RTL_REGEXP) ? :right : :left,
+                                line_spacing: 1.3, padding: [0, 0, 20, 0])
+      end
     end
 
     def sign_reason

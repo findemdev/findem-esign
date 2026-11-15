@@ -242,6 +242,20 @@ module Submitters
     { 'version' => value['version'], 'text' => value['text'], 'sha256' => Digest::SHA256.hexdigest(value['text']) }
   end
 
+  # Event data for an acceptance or withdrawal; it keeps the text, since the account's disclosure may change or go.
+  def consent_event_data(consent)
+    { version: consent['version'], sha256: consent['sha256'], text: consent['text'] }
+  end
+
+  # The disclosure an acceptance event recorded, or nil when its text is missing or does not match its sha256.
+  def accepted_consent(event)
+    version, sha256, text = event.data.values_at('version', 'sha256', 'text')
+
+    return unless text.is_a?(String) && Digest::SHA256.hexdigest(text) == sha256
+
+    { 'version' => version.to_s, 'sha256' => sha256, 'text' => text }
+  end
+
   # An acceptance made before the link was delegated belongs to the previous person.
   def consent_accepted?(submitter, consent)
     events = submitter.submission_events.where(event_type: %w[accept_consent delegate_form]).sort_by(&:event_timestamp)

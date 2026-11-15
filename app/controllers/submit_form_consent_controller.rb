@@ -19,7 +19,7 @@ class SubmitFormConsentController < ApplicationController
 
     unless Submitters.consent_accepted?(submitter, consent)
       SubmissionEvents.create_with_tracking_data(submitter, 'accept_consent', request,
-                                                 { version: consent['version'], sha256: consent['sha256'] })
+                                                 Submitters.consent_event_data(consent))
     end
 
     head :ok

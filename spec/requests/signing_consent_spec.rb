@@ -33,6 +33,17 @@ describe 'Signing consent' do
     submitter.submission_events.order(:event_timestamp).pluck(:event_type)
   end
 
+  def audit_log_text
+    create(:encrypted_config, account:, key: EncryptedConfig::ESIGN_CERTS_KEY,
+                              value: GenerateCertificate.call.transform_values(&:to_pem))
+
+    data = Submissions::GenerateAuditTrail.call(submission.reload).download
+
+    Pdfium::Document.open_bytes(data) do |doc|
+      Array.new(doc.page_count) { |i| doc.get_page(i).text }.join("\n")
+    end.squish
+  end
+
   def signing_page
     get submit_form_path(slug: submitter.slug)
 
@@ -108,7 +119,7 @@ describe 'Signing consent' do
       event = submitter.submission_events.sole
 
       expect(event.event_type).to eq('accept_consent')
-      expect(event.data.slice('version', 'sha256')).to eq('version' => 'v1', 'sha256' => sha256)
+      expect(event.data.slice('version', 'sha256', 'text')).to eq('version' => 'v1', 'sha256' => sha256, 'text' => text)
       expect(event.data['ip']).to be_present
 
       accept_consent
@@ -182,20 +193,73 @@ describe 'Signing consent' do
       expect(SubmissionEvent.count).to eq(0)
     end
 
-    it 'lists the acceptance and its version on the audit log' do
-      create(:encrypted_config, account:, key: EncryptedConfig::ESIGN_CERTS_KEY,
-                                value: GenerateCertificate.call.transform_values(&:to_pem))
+    it 'lists the acceptance with its version and sha256, and the accepted text, on the audit log' do
       accept_consent
       complete_form
 
-      data = Submissions::GenerateAuditTrail.call(submission.reload).download
-      audit = Pdfium::Document.open_bytes(data) do |doc|
-        Array.new(doc.page_count) { |i| doc.get_page(i).text }.join("\n")
-      end.squish
+      audit = audit_log_text
 
       expect(audit).to include('Electronic records consent accepted by Mary Signer')
       expect(audit).to include('Disclosure version v1')
       expect(audit.index('Electronic records consent accepted')).to be < audit.index('Submission completed by')
+      expect(audit).to include('Electronic records and signature disclosure Disclosure version v1 ' \
+                               "Disclosure SHA-256 #{sha256} #{text.squish}")
+    end
+
+    it 'leaves a recorded text that does not match its sha256 off the audit log' do
+      accept_consent
+      complete_form
+
+      event = submitter.submission_events.find_by!(event_type: 'accept_consent')
+      event.update!(data: event.data.merge('text' => 'Edited afterwards.'))
+
+      audit = audit_log_text
+
+      expect(audit).to include('Disclosure version v1')
+      expect(audit).not_to include('Electronic records and signature disclosure')
+      expect(audit).not_to include('Edited afterwards.')
+    end
+
+    context 'when the platform then changes and removes the disclosure' do
+      let(:headers) { { 'Authorization' => 'Bearer platform-token-123', 'Content-Type' => 'application/json' } }
+
+      before do
+        stub_const('ENV', ENV.to_h.except('ATS_PLATFORM_CONFIG_FILE')
+                                .merge('PLATFORM_API_TOKEN' => 'platform-token-123'))
+        account.update!(external_id: 'consent-tenant-2')
+      end
+
+      def provision_consent(consent)
+        post('/api/platform/accounts', headers:, params: { external_id: account.external_id, name: account.name,
+                                                           email: 'platform@tenant.example.com', consent: }.to_json)
+
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'keeps the accepted text and its sha256 on the acceptance and the audit log' do
+        accept_consent
+        provision_consent({ version: 'v2', text: 'A replacement disclosure.' })
+
+        expect(Submitters.signing_consent(account)).to include('version' => 'v2', 'text' => 'A replacement disclosure.')
+
+        provision_consent(nil)
+
+        expect(Submitters.signing_consent(account)).to be_nil
+
+        complete_form
+
+        expect(response).to have_http_status(:ok)
+
+        data = submitter.submission_events.find_by!(event_type: 'accept_consent').data
+
+        expect(data.slice('version', 'sha256', 'text')).to eq('version' => 'v1', 'sha256' => sha256, 'text' => text)
+        expect(Digest::SHA256.hexdigest(data['text'])).to eq(data['sha256'])
+
+        audit = audit_log_text
+
+        expect(audit).to include("Disclosure version v1 Disclosure SHA-256 #{sha256} #{text.squish}")
+        expect(audit).not_to include('replacement')
+      end
     end
 
     it 'records a withdrawal on decline and carries it on the webhook payload' do
@@ -204,8 +268,8 @@ describe 'Signing consent' do
       expect(response).to redirect_to(submit_form_path(submitter.slug))
       expect(submitter.reload.declined_at).to be_present
       expect(event_types).to eq(%w[decline_form withdraw_consent])
-      expect(submitter.submission_events.find_by!(event_type: 'withdraw_consent').data.slice('version', 'sha256'))
-        .to eq('version' => 'v1', 'sha256' => sha256)
+      expect(submitter.submission_events.find_by!(event_type: 'withdraw_consent').data)
+        .to include('version' => 'v1', 'sha256' => sha256, 'text' => text)
       expect(Submitters::SerializeForWebhook.call(submitter).slice('decline_reason', 'consent_withdrawn'))
         .to eq('decline_reason' => 'Paper, please', 'consent_withdrawn' => true)
     end
