@@ -4,9 +4,6 @@ module Submitters
   module AuthorizedForForm
     Unauthorized = Class.new(StandardError)
 
-    # The signer starts these forms and invites the rest, so only the template or account setting orders them.
-    SIGNER_STARTED_SOURCES = %w[link self].freeze
-
     module_function
 
     def call(submitter, current_user, request, with_order: false)
@@ -33,17 +30,19 @@ module Submitters
       return false unless submitter
 
       submission = submitter.submission
+
+      return true unless signing_order_required?(submission, submitter.account_id)
+
       submitter_items = submission.template_submitters || submission.template.submitters
 
       return true if submitter_items.size < 2 || submitter_items.none? { |item| item['uuid'] == submitter.uuid }
-      return true unless signing_order_required?(submission, submitter.account_id)
 
       Submitters.current_submitter_order?(submitter)
     end
 
+    # Preserved order on a submission only sequences the invitations; the template or account setting enforces turns.
     def signing_order_required?(submission, account_id)
-      (submission.submitters_order_preserved? && SIGNER_STARTED_SOURCES.exclude?(submission.source)) ||
-        submission.template&.preferences&.dig('submitters_order') == 'preserved' ||
+      submission.template&.preferences&.dig('submitters_order') == 'preserved' ||
         AccountConfig.exists?(account_id:, key: AccountConfig::ENFORCE_SIGNING_ORDER_KEY, value: true)
     end
 
