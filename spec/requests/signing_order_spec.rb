@@ -17,9 +17,11 @@ describe 'Signing order' do
     submission.submitters.find_by!(uuid: template.submitters[index]['uuid'])
   end
 
+  # An API submission without field overrides keeps no template_fields and uses the template's fields.
   def field_values(submitter)
-    submitter.submission.template_fields.select { |f| f['submitter_uuid'] == submitter.uuid }
-             .to_h { |f| [f['uuid'], 'Jane'] }
+    fields = submitter.submission.template_fields || submitter.submission.template.fields
+
+    fields.select { |f| f['submitter_uuid'] == submitter.uuid }.to_h { |f| [f['uuid'], 'Jane'] }
   end
 
   def open_form(submitter)
