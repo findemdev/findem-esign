@@ -71,4 +71,9 @@ module TextUtils
       text
     end
   end
+
+  # Reorders each line on its own; reordering the whole text would also reverse the order of its lines.
+  def maybe_rtl_reverse_lines(text)
+    text.split(/\r?\n/).map { |line| maybe_rtl_reverse(line) }.join("\n")
+  end
 end

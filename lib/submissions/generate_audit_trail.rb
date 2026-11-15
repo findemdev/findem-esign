@@ -571,7 +571,7 @@ module Submissions
           ], line_spacing: 1.3, padding: [0, 0, 8, 0]
         )
 
-        text = TextUtils.maybe_rtl_reverse(disclosure['text'])
+        text = TextUtils.maybe_rtl_reverse_lines(disclosure['text'])
 
         composer.formatted_text([{ text: }],
                                 text_align: text.match?(RTL_REGEXP) ? :right : :left,

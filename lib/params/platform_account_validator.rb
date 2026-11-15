@@ -6,6 +6,7 @@ module Params
     URL_REGEXP = %r{\Ahttps?://\S+\z}i
     HEADER_NAME_REGEXP = /\A[\w-]+\z/
     CONSENT_VERSION_REGEXP = %r{\A[\w.:/+-]{1,100}\z}
+    CONSENT_TEXT_MAX_LENGTH = 20_000
 
     def call
       required(params, :external_id)
@@ -35,10 +36,17 @@ module Params
         format(consent, :version, CONSENT_VERSION_REGEXP, message: 'version is invalid')
         required(consent, :text)
         type(consent, :text, String)
+        max_length(consent, :text, CONSENT_TEXT_MAX_LENGTH)
       end
     end
 
     private
+
+    def max_length(params, key, length)
+      return unless params[key].is_a?(String) && params[key].length > length
+
+      raise_error("#{key} must be at most #{length} characters")
+    end
 
     def timezone(params, key)
       return if params[key].blank?

@@ -17,8 +17,8 @@ describe 'Signing consent' do
                  .update!(value: { 'version' => version, 'text' => consent_text })
   end
 
-  def accept_consent(version: 'v1', digest: sha256)
-    post submit_form_consent_index_path(submitter.slug), params: { version:, sha256: digest }
+  def accept_consent(version: 'v1', digest: sha256, signer: submitter)
+    post submit_form_consent_index_path(signer.slug), params: { version:, sha256: digest }
   end
 
   def complete_form
@@ -81,6 +81,17 @@ describe 'Signing consent' do
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(SubmissionEvent.count).to eq(0)
+    end
+
+    it 'leaves the disclosure section off the audit log' do
+      complete_form
+
+      audit = audit_log_text
+
+      expect(audit).to include('Submission completed by')
+      expect(audit).not_to include(I18n.t('electronic_records_and_signature_disclosure'))
+      expect(audit).not_to include(I18n.t('disclosure_version'))
+      expect(audit).not_to include('Electronic records consent accepted')
     end
   end
 
@@ -204,6 +215,65 @@ describe 'Signing consent' do
       expect(audit.index('Electronic records consent accepted')).to be < audit.index('Submission completed by')
       expect(audit).to include('Electronic records and signature disclosure Disclosure version v1 ' \
                                "Disclosure SHA-256 #{sha256} #{text.squish}")
+    end
+
+    it 'lists each version the signer accepted on the audit log' do
+      new_text = "#{text} Updated."
+      new_sha256 = Digest::SHA256.hexdigest(new_text)
+
+      travel_to(1.minute.ago) { accept_consent }
+      configure_consent(version: 'v2', consent_text: new_text)
+      accept_consent(version: 'v2', digest: new_sha256)
+      complete_form
+
+      expect(response).to have_http_status(:ok)
+
+      audit = audit_log_text
+      first_disclosure = "Disclosure version v1 Disclosure SHA-256 #{sha256} #{text.squish}"
+      second_disclosure = "Disclosure version v2 Disclosure SHA-256 #{new_sha256} #{new_text.squish}"
+
+      expect(audit.scan('Electronic records consent accepted by Mary Signer').size).to eq(2)
+      expect(audit.scan(I18n.t('electronic_records_and_signature_disclosure')).size).to eq(1)
+      expect(audit).to include(first_disclosure, second_disclosure)
+      expect(audit.index(first_disclosure)).to be < audit.index(second_disclosure)
+    end
+
+    it 'keeps the paragraph order of a right-to-left disclosure on the audit log' do
+      rtl_text = "\u05E9\u05DC\u05D5\u05DD First paragraph\n\u05EA\u05D5\u05D3\u05D4 Second paragraph"
+
+      configure_consent(consent_text: rtl_text)
+      accept_consent(digest: Digest::SHA256.hexdigest(rtl_text))
+      complete_form
+
+      expect(response).to have_http_status(:ok)
+
+      audit = audit_log_text
+
+      expect(audit).to include('First paragraph', 'Second paragraph')
+      expect(audit.index('First paragraph')).to be < audit.index('Second paragraph')
+    end
+
+    context 'with two signers who accept the same disclosure' do
+      let(:template) { create(:template, account:, author:, submitter_count: 2, only_field_types: %w[text]) }
+      let(:cosigner) do
+        create(:submitter, submission:, uuid: template.submitters.second['uuid'], account:, name: 'Omar Cosigner')
+      end
+
+      it 'prints the disclosure once on the audit log' do
+        accept_consent
+        accept_consent(signer: cosigner)
+
+        expect(response).to have_http_status(:ok)
+
+        complete_form
+
+        audit = audit_log_text
+
+        expect(audit).to include('Electronic records consent accepted by Mary Signer',
+                                 'Electronic records consent accepted by Omar Cosigner')
+        expect(audit.scan(I18n.t('electronic_records_and_signature_disclosure')).size).to eq(1)
+        expect(audit.scan(text.squish).size).to eq(1)
+      end
     end
 
     it 'leaves a recorded text that does not match its sha256 off the audit log' do
@@ -350,7 +420,11 @@ describe 'Signing consent' do
       expect(response).to have_http_status(:ok)
       expect(stored_consent).to eq([])
 
-      provision(consent: { version: 'v3', text: })
+      provision(consent: { version: 'v3', text: 'a' * 20_000 })
+
+      expect(response).to have_http_status(:ok)
+      expect(stored_consent).to eq([{ 'version' => 'v3', 'text' => 'a' * 20_000 }])
+
       provision(consent: {})
 
       expect(stored_consent).to eq([])
@@ -366,6 +440,7 @@ describe 'Signing consent' do
         { version: 'v' * 101, text: } => /version is invalid/,
         { version: 1, text: } => /version must be a String/,
         { version: 'v1', text: %w[a] } => /text must be a String/,
+        { version: 'v1', text: 'a' * 20_001 } => /text must be at most 20000 characters/,
         'nope' => /consent must be a Object/
       }
 
