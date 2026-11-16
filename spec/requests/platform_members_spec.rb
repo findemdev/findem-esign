@@ -70,7 +70,7 @@ describe 'Platform members' do
     expect(own_template.reload.archived_at).to be_nil
   end
 
-  it 'copies a member no documents through their template, and keeps their own signing among their documents' do
+  it 'copies a member no documents through their template' do
     own_template.update!(preferences: { 'bcc_completed' => member.email })
     template.update!(preferences: { 'bcc_completed' => admin.email })
 
@@ -86,7 +86,9 @@ describe 'Platform members' do
     get "/templates/#{template.id}/submissions/new"
 
     expect(response.body).to include(%(type="hidden" name="bcc_completed[]" value="#{admin.email}"))
+  end
 
+  it 'keeps a document a member signs themself among their documents' do
     sign_in(member)
 
     expect { patch "/start_form_self/#{template.id}" }.to change(Submission, :count).by(1)
