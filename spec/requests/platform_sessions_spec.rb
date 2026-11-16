@@ -104,18 +104,50 @@ describe 'Platform sign-in hand-off' do
     end
   end
 
-  it 'does not remember a person, and signs them out after eight hours without a visit' do
+  it 'does not remember a person, and signs them out eight hours after the platform signed them in' do
     get '/platform/session', params: { token: token_for }
 
+    user = account.users.find_by!(email: 'jules@northwind.test')
+    user.remember_me!
+    elsewhere = create(:user)
+    elsewhere.remember_me!
+
     expect(cookies['remember_user_token']).to be_blank
+    expect(user.remember_me?(user.rememberable_value, 1.second.from_now)).to be(false)
+    expect(elsewhere.remember_me?(elsewhere.rememberable_value, 1.second.from_now)).to be(true)
 
     travel_to(7.hours.from_now) { get '/settings/profile' }
 
     expect(response).to have_http_status(:ok)
 
-    travel_to(16.hours.from_now) { get '/settings/profile' }
+    travel_to(9.hours.from_now) { get '/settings/profile' }
 
     expect(signed_in_user_id).to be_nil
+  end
+
+  it 'signs a person in again when they are already signed in, and after their time is up' do
+    get '/platform/session', params: { token: token_for }
+
+    user = account.users.find_by!(email: 'jules@northwind.test')
+
+    get '/platform/session', params: { token: token_for(claims.merge(jti: SecureRandom.base58(24))) }
+
+    expect(response).to redirect_to('/')
+    expect(signed_in_user_id).to eq(user.id)
+
+    travel_to(9.hours.from_now) do
+      at = Time.current.to_i
+      fresh = claims.merge(iat: at, exp: at + 60, jti: SecureRandom.base58(24))
+
+      get '/platform/session', params: { token: token_for(fresh) }
+
+      expect(response).to redirect_to('/')
+      expect(signed_in_user_id).to eq(user.id)
+
+      get '/settings/profile'
+
+      expect(response).to have_http_status(:ok)
+    end
   end
 
   it 'refuses a token used twice' do

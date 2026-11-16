@@ -20,6 +20,9 @@ class StartFormSelfController < ApplicationController
         @submitter, @template, ip: request.remote_ip, user_agent: request.user_agent, source: :self
       )
 
+      # The person signing it themself sent it, so it is among their documents (Ability).
+      @submitter.submission.created_by_user = current_user
+
       Submissions::AssignDefinedSubmitters.call(@submitter.submission)
     else
       @submitter.assign_attributes(ip: request.remote_ip, ua: request.user_agent)

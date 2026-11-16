@@ -117,7 +117,8 @@ class UsersController < ApplicationController
     if params.key?(:user)
       permitted_params = %i[email first_name last_name password archived_at otp_required_for_login]
 
-      permitted_params << :role if role_valid?(params.dig(:user, :role))
+      # In a platform account the role comes from the platform at each sign-in (PlatformSessions).
+      permitted_params << :role if role_valid?(params.dig(:user, :role)) && !current_account.external_id?
 
       params.require(:user).permit(permitted_params)
     else

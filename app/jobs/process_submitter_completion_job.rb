@@ -180,7 +180,7 @@ class ProcessSubmitterCompletionJob
 
   def build_bcc_addresses(submission)
     bcc = submission.preferences['bcc_completed'].presence ||
-          submission.template&.preferences&.dig('bcc_completed').presence ||
+          submission.template&.bcc_completed ||
           submission.account.account_configs
                     .find_by(key: AccountConfig::BCC_EMAILS)&.value
 

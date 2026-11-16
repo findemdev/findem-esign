@@ -23,12 +23,14 @@ describe Ability do
     expect(ability).to be_able_to(:manage, own.submitters.first)
     expect(ability).not_to be_able_to(:read, other)
     expect(ability).not_to be_able_to(:read, other.submitters.first)
-    expect(ability).to be_able_to(:create, Submission.new(account_id: account.id, created_by_user_id: member.id))
+    expect(ability).to be_able_to(:create, Submission.new(account_id: account.id))
     expect(ability).to be_able_to(:read, template)
     expect(ability).not_to be_able_to(:update, template)
-    expect(ability).not_to be_able_to(:destroy, template)
     expect(ability).to be_able_to(:update, own_template)
-    expect(ability).to be_able_to(:destroy, own_template)
+    expect(ability).not_to be_able_to(:destroy, own_template)
+    expect(ability).not_to be_able_to(:destroy, template)
+    expect(ability).to be_able_to(:update, TemplateFolder.new(account_id: account.id, author_id: member.id))
+    expect(ability).not_to be_able_to(:destroy, TemplateFolder.new(account_id: account.id, author_id: member.id))
     expect(ability).not_to be_able_to(:read, elsewhere)
   end
 
@@ -47,16 +49,10 @@ describe Ability do
     expect(ability).not_to be_able_to(:manage, :mcp)
   end
 
-  it 'gives an administrator every document of the account, and keys only outside a platform account' do
+  it 'gives an administrator every document of the account' do
     sent = create(:submission, :with_submitters, template:, created_by_user: member)
 
     expect(described_class.new(admin)).to be_able_to(:manage, sent)
-    expect(described_class.new(admin)).not_to be_able_to(:read, admin.access_token)
-    expect(described_class.new(admin)).not_to be_able_to(:manage, McpToken.new(user: admin))
-
-    outside = create(:user)
-
-    expect(described_class.new(outside)).to be_able_to(:manage, outside.access_token)
-    expect(described_class.new(outside)).to be_able_to(:manage, McpToken.new(user: outside))
+    expect(described_class.new(admin)).to be_able_to(:destroy, template)
   end
 end

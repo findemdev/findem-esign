@@ -52,7 +52,7 @@ class User < ApplicationRecord
     MEMBER_ROLE = 'member'
   ].freeze
 
-  # How long a person in a platform account stays signed in without a visit (remember_me, timeout_in).
+  # How long a person in a platform account stays signed in after the platform signs them in (timedout?).
   PLATFORM_TIMEOUT = 8.hours
 
   EMAIL_REGEXP = /[^@;,<>\s]+@[^@;,<>\s]+/
@@ -83,6 +83,7 @@ class User < ApplicationRecord
   scope :admins, -> { where(role: ADMIN_ROLE) }
 
   validates :email, format: { with: /\A[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\z/ }
+  validate :email_kept_in_platform_account, on: :update
 
   def access_token
     super || build_access_token.tap(&:save!)
@@ -99,14 +100,21 @@ class User < ApplicationRecord
     super && !archived_at? && !account.archived_at?
   end
 
-  # A person in a platform account is not remembered, and is signed out after PLATFORM_TIMEOUT without a visit: they come
-  # back through the platform, which checks them and their role again (PlatformSessions). Nobody else times out.
+  # A person in a platform account is not remembered, and is signed out PLATFORM_TIMEOUT after the platform last signed
+  # them in, however often they visit: they come back through the platform, which checks them and their role again
+  # (PlatformSessions). Nobody else times out.
   def remember_me
     !account&.external_id?
   end
 
-  def timeout_in
-    PLATFORM_TIMEOUT if account&.external_id?
+  def remember_me?(token, generated_at)
+    !account&.external_id? && super
+  end
+
+  def timedout?(_last_access)
+    return false unless account&.external_id?
+
+    current_sign_in_at.nil? || current_sign_in_at <= PLATFORM_TIMEOUT.ago
   end
 
   def sidekiq?
@@ -137,5 +145,13 @@ class User < ApplicationRecord
     else
       email
     end
+  end
+
+  private
+
+  # The platform signs a person in by their email (PlatformSessions), so nobody in a platform account changes it: taking
+  # another person's address would hand this user that person's sign-in and role.
+  def email_kept_in_platform_account
+    errors.add(:email, :invalid) if will_save_change_to_email? && account&.external_id?
   end
 end
