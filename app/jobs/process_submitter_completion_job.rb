@@ -178,11 +178,15 @@ class ProcessSubmitterCompletionJob
     end
   end
 
+  # What the platform's apps send (as the user that stands for the tenant) is copied only where they ask; the template's
+  # and the account's copies are for the documents people send.
   def build_bcc_addresses(submission)
-    bcc = submission.preferences['bcc_completed'].presence ||
-          submission.template&.bcc_completed ||
-          submission.account.account_configs
-                    .find_by(key: AccountConfig::BCC_EMAILS)&.value
+    bcc = submission.preferences['bcc_completed'].presence
+
+    unless bcc || submission.created_by_user&.stands_for_tenant?
+      bcc = submission.template&.bcc_completed ||
+            submission.account.account_configs.find_by(key: AccountConfig::BCC_EMAILS)&.value
+    end
 
     bcc.to_s.scan(User::EMAIL_REGEXP)
   end

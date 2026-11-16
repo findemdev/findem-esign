@@ -26,6 +26,9 @@ class UserConfig < ApplicationRecord
   RECEIVE_COMPLETED_EMAIL = 'receive_completed_email'
   RECEIVE_DECLINED_EMAIL = 'receive_declined_email'
   SHOW_APP_TOUR = 'show_app_tour'
+  # Set only by the platform API, on the user a platform account's apps send with (Api::Platform::AccountsController);
+  # nobody sets it on themself (UserConfigsController::ALLOWED_KEYS). What that user sends is the apps' to show (Ability).
+  STANDS_FOR_TENANT = 'stands_for_tenant'
 
   belongs_to :user
 

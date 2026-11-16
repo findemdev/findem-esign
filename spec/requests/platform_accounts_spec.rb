@@ -70,7 +70,8 @@ describe 'Platform accounts API' do
                                       last_name: nil)
       expect(user.confirmed_at).to be_present
       expect(user.user_configs.pluck(:key, :value)).to contain_exactly([UserConfig::RECEIVE_COMPLETED_EMAIL, false],
-                                                                       [UserConfig::RECEIVE_DECLINED_EMAIL, false])
+                                                                       [UserConfig::RECEIVE_DECLINED_EMAIL, false],
+                                                                       [UserConfig::STANDS_FOR_TENANT, true])
       expect(account.encrypted_configs.find_by(key: EncryptedConfig::ESIGN_CERTS_KEY).value).to be_present
       expect(account.webhook_urls.first).to have_attributes(url: webhook_params[:url],
                                                             secret: webhook_params[:secret],
@@ -135,7 +136,8 @@ describe 'Platform accounts API' do
 
       expect(user.reload).to have_attributes(first_name: 'Acme Robotics', last_name: nil)
       expect(user.user_configs.pluck(:key, :value)).to contain_exactly([UserConfig::RECEIVE_COMPLETED_EMAIL, false],
-                                                                       [UserConfig::RECEIVE_DECLINED_EMAIL, false])
+                                                                       [UserConfig::RECEIVE_DECLINED_EMAIL, false],
+                                                                       [UserConfig::STANDS_FOR_TENANT, true])
     end
 
     it 'sends its user no password-reset email' do
