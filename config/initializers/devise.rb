@@ -9,8 +9,10 @@ class FailureApp < Devise::FailureApp
     super
   end
 
+  # A sign-in whose time is up goes back to its page signed out, as Devise does it: a signing page then opens without a
+  # sign-in, and any other page comes back here and goes on to the platform.
   def redirect_url
-    return super unless scope == :user && request.get?
+    return super unless scope == :user && request.get? && warden_message != :timeout
 
     PlatformEntry.url_for(attempted_path) || super
   end

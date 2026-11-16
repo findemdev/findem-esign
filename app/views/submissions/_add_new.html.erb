@@ -59,7 +59,7 @@
               <%= svg_icon('trash', class: 'w-4 h-4') %>
             </a>
           </div>
-          <% default_bcc_completed = template.preferences['bcc_completed'].presence || current_account.account_configs.find_by(key: AccountConfig::BCC_EMAILS)&.value %>
+          <% default_bcc_completed = template.bcc_completed || current_account.account_configs.find_by(key: AccountConfig::BCC_EMAILS)&.value %>
           <% if default_bcc_completed.present? %>
             <input type="hidden" name="bcc_completed[]" value="<%= default_bcc_completed %>">
           <% end %>

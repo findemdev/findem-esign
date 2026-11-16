@@ -52,8 +52,8 @@ module PlatformSessions
     Sidekiq.redis { |conn| conn.call('SET', "platform_session:#{jti}", '1', 'NX', 'EX', TTL * 2) } == 'OK'
   end
 
-  # The person in their tenant's account: an active user with the token's email, or a new administrator. An email that
-  # already signs in to another account is refused rather than moved.
+  # The person in their tenant's account, in the role the token gives them on this sign-in: an active user with the token's
+  # email, or a new one. An email that already signs in to another account is refused rather than moved.
   def user_for!(claims)
     account = Account.active.find_by(external_id: claims['tenant'].to_s)
 
@@ -65,13 +65,25 @@ module PlatformSessions
     raise Refused, :conflict if user && user.account_id != account.id
     raise Refused, :forbidden if user&.archived_at?
 
-    user || create_user(account, email, claims['name'].to_s)
+    role = role_for(claims)
+
+    return create_user(account, email, claims['name'].to_s, role) unless user
+
+    user.update_column(:role, role) if user.role != role
+
+    user
   end
 
-  def create_user(account, email, name)
+  # The platform's owners and admins administer the account (`role: "admin"`); anyone else, and a token without a role, is
+  # a member, who sees only the documents they sent (Ability).
+  def role_for(claims)
+    claims['role'] == User::ADMIN_ROLE ? User::ADMIN_ROLE : User::MEMBER_ROLE
+  end
+
+  def create_user(account, email, name, role)
     first_name, last_name = name.strip.split(/\s+/, 2)
 
-    account.users.create!(email:, first_name:, last_name:, role: User::ADMIN_ROLE,
+    account.users.create!(email:, first_name:, last_name:, role:,
                           password: SecureRandom.base58(32), confirmed_at: Time.current)
   rescue ActiveRecord::RecordInvalid
     raise Refused, :unauthorized

@@ -48,8 +48,12 @@
 #
 class User < ApplicationRecord
   ROLES = [
-    ADMIN_ROLE = 'admin'
+    ADMIN_ROLE = 'admin',
+    MEMBER_ROLE = 'member'
   ].freeze
+
+  # How long a person in a platform account stays signed in after the platform signs them in (timedout?).
+  PLATFORM_TIMEOUT = 8.hours
 
   EMAIL_REGEXP = /[^@;,<>\s]+@[^@;,<>\s]+/
 
@@ -69,7 +73,7 @@ class User < ApplicationRecord
   has_many :encrypted_configs, dependent: :destroy, class_name: 'EncryptedUserConfig'
   has_many :email_messages, dependent: :destroy, foreign_key: :author_id, inverse_of: :author
 
-  devise :two_factor_authenticatable, :recoverable, :rememberable, :validatable, :trackable, :lockable
+  devise :two_factor_authenticatable, :recoverable, :rememberable, :validatable, :trackable, :lockable, :timeoutable
 
   attribute :role, :string, default: ADMIN_ROLE
   attribute :uuid, :string, default: -> { SecureRandom.uuid }
@@ -79,6 +83,7 @@ class User < ApplicationRecord
   scope :admins, -> { where(role: ADMIN_ROLE) }
 
   validates :email, format: { with: /\A[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\z/ }
+  validate :email_kept_in_platform_account, on: :update
 
   def access_token
     super || build_access_token.tap(&:save!)
@@ -95,8 +100,21 @@ class User < ApplicationRecord
     super && !archived_at? && !account.archived_at?
   end
 
+  # A person in a platform account is not remembered, and is signed out PLATFORM_TIMEOUT after they last signed in,
+  # however often they visit: they come back through the platform, which checks them and their role again
+  # (PlatformSessions). A sign-in's own request has no last visit yet, and its time starts there. Nobody else times out.
   def remember_me
-    true
+    !account&.external_id?
+  end
+
+  def remember_me?(token, generated_at)
+    !account&.external_id? && super
+  end
+
+  def timedout?(last_access)
+    return false unless last_access && account&.external_id?
+
+    current_sign_in_at.nil? || current_sign_in_at <= PLATFORM_TIMEOUT.ago
   end
 
   def sidekiq?
@@ -127,5 +145,13 @@ class User < ApplicationRecord
     else
       email
     end
+  end
+
+  private
+
+  # The platform signs a person in by their email (PlatformSessions), so nobody in a platform account changes it: taking
+  # another person's address would hand this user that person's sign-in and role.
+  def email_kept_in_platform_account
+    errors.add(:email, :invalid) if will_save_change_to_email? && account&.external_id?
   end
 end

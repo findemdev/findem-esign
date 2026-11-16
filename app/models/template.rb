@@ -91,6 +91,12 @@ class Template < ApplicationRecord
     folder.full_name
   end
 
+  # Where the template copies its completed documents. A member's template copies nothing: it would copy them the documents
+  # other people send from it (Ability).
+  def bcc_completed
+    preferences['bcc_completed'].presence unless author&.role == User::MEMBER_ROLE
+  end
+
   private
 
   def maybe_set_default_folder

@@ -7,6 +7,10 @@ class PlatformSessionsController < ApplicationController
   skip_before_action :authenticate_user!
   skip_authorization_check
 
+  # The browser may still hold a session whose time is up (User#timedout?). This sign-in replaces it, so the check that
+  # would end it first is skipped here, and the sign-in is forced when it is the same person.
+  prepend_before_action { request.env['devise.skip_timeoutable'] = true }
+
   def show
     response.headers['Cache-Control'] = 'no-store'
     response.headers['Referrer-Policy'] = 'no-referrer'
@@ -16,7 +20,7 @@ class PlatformSessionsController < ApplicationController
     user = PlatformSessions.user_for!(PlatformSessions.verify!(params[:token]))
 
     reset_session
-    sign_in(user)
+    sign_in(user, force: true)
 
     redirect_to PlatformSessions.next_path(params[:next])
   rescue PlatformSessions::Refused => e
