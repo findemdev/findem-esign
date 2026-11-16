@@ -55,4 +55,36 @@ describe Ability do
     expect(described_class.new(admin)).to be_able_to(:manage, sent)
     expect(described_class.new(admin)).to be_able_to(:destroy, template)
   end
+
+  it 'keeps what the platform’s apps send from everyone but the user that stands for the tenant, and not the templates' do
+    tenant = create(:user, account:)
+    tenant.user_configs.create!(key: UserConfig::STANDS_FOR_TENANT, value: true)
+    app_template = create(:template, account:, author: tenant)
+    from_app = create(:submission, :with_submitters, template: app_template, created_by_user: tenant)
+    from_person = create(:submission, :with_submitters, template: app_template, created_by_user: admin)
+    from_link = create(:submission, :with_submitters, template:, created_by_user: nil)
+    ability = described_class.new(admin)
+
+    expect(Submission.accessible_by(ability)).to contain_exactly(from_person, from_link)
+    expect(Submitter.accessible_by(ability)).to match_array(from_person.submitters + from_link.submitters)
+    expect(ability).not_to be_able_to(:read, from_app)
+    expect(ability).not_to be_able_to(:read, from_app.submitters.first)
+    expect(ability).to be_able_to(:manage, from_person)
+    expect(ability).to be_able_to(:manage, from_link)
+    expect(ability).to be_able_to(:create, Submission.new(account_id: account.id))
+    expect(ability).to be_able_to(:update, app_template)
+    expect(Submission.accessible_by(described_class.new(member))).to be_empty
+    expect(Submission.accessible_by(described_class.new(tenant))).to contain_exactly(from_app, from_person, from_link)
+  end
+
+  it 'holds nothing back in an account no platform runs' do
+    plain = create(:account)
+    owner = create(:user, account: plain)
+    keyed = create(:user, account: plain)
+    keyed.user_configs.create!(key: UserConfig::STANDS_FOR_TENANT, value: true)
+    sent = create(:submission, :with_submitters, template: create(:template, account: plain, author: keyed),
+                                                 created_by_user: keyed)
+
+    expect(described_class.new(owner)).to be_able_to(:manage, sent)
+  end
 end

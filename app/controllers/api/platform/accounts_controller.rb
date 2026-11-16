@@ -95,13 +95,15 @@ module Api
         user
       end
 
-      # The user stands for the tenant, not a person: signers see the tenant's name as the sender, and the completed and
-      # declined notices stay off (the platform hears of those by webhook; the address is its own, not a person's).
+      # The user stands for the tenant, not a person: signers see the tenant's name as the sender, the completed and
+      # declined notices stay off (the platform hears of those by webhook; the address is its own, not a person's), and
+      # what the platform's apps send with it is theirs to show, so nobody signed in here sees it (Ability).
       def stand_for_tenant(user, account)
         user.update!(first_name: account.name, last_name: nil) if user.full_name != account.name
 
-        [UserConfig::RECEIVE_COMPLETED_EMAIL, UserConfig::RECEIVE_DECLINED_EMAIL].each do |key|
-          user.user_configs.find_or_initialize_by(key:).update!(value: false)
+        { UserConfig::RECEIVE_COMPLETED_EMAIL => false, UserConfig::RECEIVE_DECLINED_EMAIL => false,
+          UserConfig::STANDS_FOR_TENANT => true }.each do |key, value|
+          user.user_configs.find_or_initialize_by(key:).update!(value:)
         end
       end
 
