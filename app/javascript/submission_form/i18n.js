@@ -26,6 +26,8 @@ const en = {
   by_clicking_you_agree_to_the: 'By clicking "{button}", you agree to the',
   electronic_signature_disclosure: 'Electronic Signature Disclosure',
   esignature_disclosure: 'eSignature Disclosure',
+  electronic_records_and_signature_disclosure: 'Electronic records and signature disclosure',
+  i_agree_to_use_electronic_records_and_signatures: 'I agree to use electronic records and signatures',
   signature: 'Signature',
   initials: 'Initials',
   sign_on_the_touchscreen: 'Sign on the touchscreen',

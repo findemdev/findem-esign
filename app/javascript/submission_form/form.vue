@@ -202,7 +202,49 @@
       :class="{ 'md:px-4': isBreakpointMd }"
     >
       <form
+        v-if="isConsentPending && !isCompleted"
+        id="consent_form"
+        class="mx-auto"
+        :style="{ maxWidth: isBreakpointMd ? '582px' : '' }"
+        @submit.prevent="acceptConsent"
+      >
+        <div
+          dir="auto"
+          class="md:mt-4 text-xl font-medium"
+        >
+          {{ t('electronic_records_and_signature_disclosure') }}
+        </div>
+        <div
+          id="consent_text"
+          dir="auto"
+          class="mt-2 max-h-48 overflow-y-auto whitespace-pre-line border border-base-300 rounded p-2"
+        >
+          {{ consent.text }}
+        </div>
+        <label
+          for="consent_checkbox"
+          class="flex items-center space-x-3 mt-3 checkbox-label"
+        >
+          <input
+            id="consent_checkbox"
+            type="checkbox"
+            class="base-checkbox !h-7 !w-7"
+            required
+          >
+          <span class="text-xl">{{ t('i_agree_to_use_electronic_records_and_signatures') }}</span>
+        </label>
+        <button
+          id="accept_consent_button"
+          type="submit"
+          class="base-button w-full mt-4 md:mt-6"
+          :disabled="isSubmitting"
+        >
+          {{ t('continue') }}
+        </button>
+      </form>
+      <form
         v-if="!isCompleted && !isInvite"
+        v-show="!isConsentPending"
         id="steps_form"
         ref="form"
         :action="submitPath"
@@ -901,6 +943,11 @@ export default {
       required: false,
       default: false
     },
+    consent: {
+      type: Object,
+      required: false,
+      default: null
+    },
     reuseSignature: {
       type: Boolean,
       required: false,
@@ -1092,11 +1139,15 @@ export default {
       isSubmittingComplete: false,
       submittedValues: {},
       isFormStarted: false,
+      isConsentAccepted: false,
       recalculateButtonDisabledKey: '',
       isAccessibilityMode: false
     }
   },
   computed: {
+    isConsentPending () {
+      return !!this.consent && !this.isConsentAccepted
+    },
     isMobile () {
       const isMobileSafariIos = 'ontouchstart' in window && navigator.maxTouchPoints > 0 && /AppleWebKit/i.test(navigator.userAgent)
 
@@ -1702,6 +1753,12 @@ export default {
       return this.$refs.areas.scrollIntoArea(area)
     },
     async submitStep (e) {
+      if (this.isConsentPending) {
+        this.isFormVisible = true
+
+        return
+      }
+
       this.isSubmitting = true
 
       const forceComplete = e?.submitter?.getAttribute('name') === 'completed'
@@ -1802,6 +1859,39 @@ export default {
       }).finally(() => {
         this.isSubmitting = false
         this.isSubmittingComplete = false
+      })
+    },
+    acceptConsent () {
+      if (this.dryRun) {
+        this.isConsentAccepted = true
+
+        return
+      }
+
+      const formData = new FormData()
+
+      formData.append('authenticity_token', this.authenticityToken)
+      formData.append('version', this.consent.version)
+      formData.append('sha256', this.consent.sha256)
+
+      this.isSubmitting = true
+
+      return fetch(this.baseUrl + `/s/${this.submitterSlug}/consent`, {
+        method: 'POST',
+        body: formData,
+        ...this.fetchOptions
+      }).then(async (response) => {
+        if (response.status === 200) {
+          this.isConsentAccepted = true
+        } else {
+          const data = await response.json().catch(() => ({}))
+
+          alert(data.error || this.t('value_is_invalid'))
+        }
+      }).catch((error) => {
+        console.error(error)
+      }).finally(() => {
+        this.isSubmitting = false
       })
     },
     minimizeForm () {

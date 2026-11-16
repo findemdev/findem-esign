@@ -23,11 +23,11 @@ module Submitters
       submitter_name = (submission.template_submitters ||
                         submission.template.submitters).find { |e| e['uuid'] == submitter.uuid }['name']
 
-      decline_reason =
-        submitter.declined_at? ? submitter.submission_events.find_by(event_type: :decline_form).data['reason'] : nil
+      decline_reason, consent_withdrawn = build_decline_details(submitter)
 
       submitter.as_json(SERIALIZE_PARAMS)
                .merge('decline_reason' => decline_reason,
+                      'consent_withdrawn' => consent_withdrawn,
                       'role' => submitter_name,
                       'preferences' => submitter.preferences.except('default_values'),
                       'values' => values,
@@ -46,6 +46,13 @@ module Submitters
                         'variables' => (submission.variables || {}).as_json,
                         'created_at' => submission.created_at.as_json
                       })
+    end
+
+    def build_decline_details(submitter)
+      return [nil, nil] unless submitter.declined_at?
+
+      [submitter.submission_events.find_by(event_type: :decline_form).data['reason'],
+       submitter.submission_events.exists?(event_type: :withdraw_consent)]
     end
 
     def build_values_array(submitter, expires_at: nil)

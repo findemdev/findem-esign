@@ -11,8 +11,9 @@ class SubmitFormController < ApplicationController
   before_action :maybe_redirect_delegated, only: %i[show completed]
   before_action :maybe_render_locked_page, only: :show
   before_action :maybe_require_link_2fa, only: %i[show]
+  before_action :maybe_refuse_out_of_turn, only: :update
 
-  CONFIG_KEYS = [].freeze
+  CONFIG_KEYS = [AccountConfig::SIGNING_CONSENT_KEY].freeze
 
   def show
     submission = @submitter.submission
@@ -25,9 +26,7 @@ class SubmitFormController < ApplicationController
 
     @form_configs = Submitters::FormConfigs.call(@submitter, CONFIG_KEYS)
 
-    return render :awaiting if (@form_configs[:enforce_signing_order] ||
-                                submission.template&.preferences&.dig('submitters_order') == 'preserved') &&
-                               !Submitters.current_submitter_order?(@submitter)
+    return render :awaiting unless Submitters::AuthorizedForForm.pass_signing_turn?(@submitter)
 
     Submissions.preload_with_pages(submission)
 
@@ -115,6 +114,13 @@ class SubmitFormController < ApplicationController
     return if Submitters::AuthorizedForForm.pass_link_2fa?(@submitter, current_user, request)
 
     redirect_to start_form_path(@submitter.submission.template.slug)
+  end
+
+  def maybe_refuse_out_of_turn
+    return if @submitter.nil? || @submitter.completed_at? || @submitter.declined_at? || @submitter.viewer?
+    return if Submitters::AuthorizedForForm.pass_signing_turn?(@submitter)
+
+    render json: { error: I18n.t('awaiting_completion_by_the_other_party') }, status: :unprocessable_content
   end
 
   def maybe_render_locked_page

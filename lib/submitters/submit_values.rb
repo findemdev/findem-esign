@@ -21,6 +21,10 @@ module Submitters
     module_function
 
     def call(submitter, params, request, validate_required: true)
+      if params[:completed] == 'true' && Submitters.consent_pending?(submitter)
+        raise ValidationError, I18n.t('consent_required_refresh_the_page_and_accept_the_disclosure')
+      end
+
       Submissions.update_template_fields!(submitter.submission) if submitter.submission.template_fields.blank?
 
       unless submitter.submission_events.exists?(event_type: 'start_form')

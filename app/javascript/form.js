@@ -51,6 +51,7 @@ safeRegisterElement('submission-form', class extends HTMLElement {
       nativePlatform: this.dataset.nativePlatform,
       withFieldLabels: this.dataset.withFieldLabels !== 'false',
       withDisclosure: this.dataset.withDisclosure === 'true',
+      consent: this.dataset.consent ? JSON.parse(this.dataset.consent) : null,
       reuseSignature: this.dataset.reuseSignature !== 'false',
       withTypedSignature: this.dataset.withTypedSignature !== 'false',
       authenticityToken: document.querySelector('meta[name="csrf-token"]')?.content,

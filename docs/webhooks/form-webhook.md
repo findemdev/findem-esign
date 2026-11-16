@@ -84,6 +84,10 @@ During the form filling and signing process, 4 types of events may occur and are
         "type": "string",
         "description": "Submitter provided decline message."
       },
+      "consent_withdrawn": {
+        "type": "boolean",
+        "description": "Whether the submitter withdrew consent to electronic records when declining; null until the submitter declines."
+      },
       "sent_at": {
         "type": "string",
         "description": "The date and time when the signing request was sent to the submitter.",

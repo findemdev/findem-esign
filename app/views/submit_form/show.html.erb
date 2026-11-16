@@ -11,6 +11,8 @@
 <% schema = Submissions.filtered_conditions_schema(@submitter.submission, values:, include_submitter_uuid: @submitter.uuid) %>
 <% font_scale = 1000.0 / PdfUtils::US_LETTER_W %>
 <% decline_modal_id = nil %>
+<% consent = Submitters.build_signing_consent(@form_configs[:signing_consent]) %>
+<% pending_consent = consent unless consent.nil? || Submitters.consent_accepted?(@submitter, consent) %>
 <% delegate_modal_id = nil %>
 <% banner_html = turbo_native_app? ? '' : local_assigns[:banner_html] %>
 <div style="max-height: -webkit-fill-available;">
@@ -177,13 +179,13 @@
 <div class="fixed bottom-0 w-full h-0 z-50">
   <div class="mx-auto" style="max-width: 1000px">
     <div class="relative md:mx-32">
-      <%= render 'submit_form/submission_form', attachments_index: @attachments_index, submitter: @submitter, prefill_signature: @prefill_signature, prefill_initials: @prefill_initials, current_user_data: @current_user_data, configs: @form_configs, dry_run: local_assigns[:dry_run], expand: local_assigns[:expand], scroll_padding: local_assigns.fetch(:scroll_padding, turbo_native_app? ? '-80px' : '-110px'), schema: %>
+      <%= render 'submit_form/submission_form', attachments_index: @attachments_index, submitter: @submitter, prefill_signature: @prefill_signature, prefill_initials: @prefill_initials, current_user_data: @current_user_data, configs: @form_configs, dry_run: local_assigns[:dry_run], expand: local_assigns[:expand], scroll_padding: local_assigns.fetch(:scroll_padding, turbo_native_app? ? '-80px' : '-110px'), schema:, consent: pending_consent %>
     </div>
   </div>
 </div>
 <% if @form_configs[:with_decline] && !@submitter.viewer? %>
   <%= render 'shared/html_modal', title: t(:decline), uuid: decline_modal_id do %>
-    <%= render 'submit_form/decline_form', submitter: @submitter %>
+    <%= render 'submit_form/decline_form', submitter: @submitter, consent: %>
   <% end %>
 <% end %>
 <% if @form_configs[:with_delegate] && !@submitter.viewer? %>

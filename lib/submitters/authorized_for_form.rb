@@ -26,6 +26,26 @@ module Submitters
       Submitters.current_submitter_order?(submitter)
     end
 
+    def pass_signing_turn?(submitter)
+      return false unless submitter
+
+      submission = submitter.submission
+
+      return true unless signing_order_required?(submission, submitter.account_id)
+
+      submitter_items = submission.template_submitters || submission.template.submitters
+
+      return true if submitter_items.size < 2 || submitter_items.none? { |item| item['uuid'] == submitter.uuid }
+
+      Submitters.current_submitter_order?(submitter)
+    end
+
+    # Preserved order on a submission only sequences the invitations; the template or account setting enforces turns.
+    def signing_order_required?(submission, account_id)
+      submission.template&.preferences&.dig('submitters_order') == 'preserved' ||
+        AccountConfig.exists?(account_id:, key: AccountConfig::ENFORCE_SIGNING_ORDER_KEY, value: true)
+    end
+
     def pass_email_2fa?(submitter, request)
       return false unless submitter
 
