@@ -48,4 +48,25 @@ RSpec.describe ProcessSubmitterCompletionJob do
       end.to raise_error(ActiveRecord::RecordNotFound)
     end
   end
+
+  describe 'copies of completed documents' do
+    it 'copies what the platform’s apps send only where they ask, and what people send as before' do
+      account.account_configs.create!(key: AccountConfig::BCC_EMAILS, value: 'records@northwind.test')
+      template.update!(preferences: { 'bcc_completed' => 'offers@northwind.test' })
+      tenant = create(:user, account:)
+      tenant.user_configs.create!(key: UserConfig::STANDS_FOR_TENANT, value: true)
+      job = described_class.new
+
+      from_app = create(:submission, template:, created_by_user: tenant)
+      hr_copy = { 'bcc_completed' => 'hr@northwind.test' }
+      asked = create(:submission, template:, created_by_user: tenant, preferences: hr_copy)
+      from_person = create(:submission, template:, created_by_user: user)
+      untemplated = create(:submission, template: create(:template, account:, author: user), created_by_user: user)
+
+      expect(job.send(:build_bcc_addresses, from_app)).to eq([])
+      expect(job.send(:build_bcc_addresses, asked)).to eq(['hr@northwind.test'])
+      expect(job.send(:build_bcc_addresses, from_person)).to eq(['offers@northwind.test'])
+      expect(job.send(:build_bcc_addresses, untemplated)).to eq(['records@northwind.test'])
+    end
+  end
 end

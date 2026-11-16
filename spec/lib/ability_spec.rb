@@ -56,7 +56,7 @@ describe Ability do
     expect(described_class.new(admin)).to be_able_to(:destroy, template)
   end
 
-  it 'keeps what the platform’s apps send from everyone but the user that stands for the tenant, and not the templates' do
+  it 'keeps what the platform’s apps send from all but the user that stands for the tenant, not the templates' do
     tenant = create(:user, account:)
     tenant.user_configs.create!(key: UserConfig::STANDS_FOR_TENANT, value: true)
     app_template = create(:template, account:, author: tenant)
@@ -75,6 +75,8 @@ describe Ability do
     expect(ability).to be_able_to(:update, app_template)
     expect(Submission.accessible_by(described_class.new(member))).to be_empty
     expect(Submission.accessible_by(described_class.new(tenant))).to contain_exactly(from_app, from_person, from_link)
+    expect(ability).not_to be_able_to(:read, WebhookUrl.new(account_id: account.id))
+    expect(described_class.new(tenant)).to be_able_to(:manage, WebhookUrl.new(account_id: account.id))
   end
 
   it 'holds nothing back in an account no platform runs' do
@@ -86,5 +88,6 @@ describe Ability do
                                                  created_by_user: keyed)
 
     expect(described_class.new(owner)).to be_able_to(:manage, sent)
+    expect(described_class.new(owner)).to be_able_to(:manage, WebhookUrl.new(account_id: plain.id))
   end
 end

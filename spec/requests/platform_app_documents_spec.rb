@@ -15,10 +15,11 @@ describe 'Documents the platform’s apps send' do
     Accounts.create_initial_configs(account)
     tenant.user_configs.create!(key: UserConfig::STANDS_FOR_TENANT, value: true)
     from_app.submitters.first.update!(name: 'Ada Sent-By-App', email: 'ada.app@northwind.test')
-    from_admin.submitters.first.update!(name: 'Grace Sent-By-Admin')
+    from_admin.submitters.first.update!(name: 'Grace Sent-By-Admin', email: 'grace.admin@northwind.test')
   end
 
   it 'leaves them out of an administrator’s lists, pages and signer search, and keeps the template theirs to change' do
+    allow(Docuseal).to receive(:fulltext_search?).and_return(false)
     sign_in(admin)
 
     get '/submissions'
@@ -35,6 +36,10 @@ describe 'Documents the platform’s apps send' do
 
     expect(response).to redirect_to('/')
 
+    get '/submitters_autocomplete', params: { field: 'email', q: 'grace.admin' }
+
+    expect(response.body).to include('grace.admin@northwind.test')
+
     get '/submitters_autocomplete', params: { field: 'email', q: 'ada.app' }
 
     expect(response.body).not_to include('ada.app@northwind.test')
@@ -42,6 +47,14 @@ describe 'Documents the platform’s apps send' do
     get "/templates/#{template.id}/edit"
 
     expect(response).to have_http_status(:ok)
+  end
+
+  it 'keeps the account’s webhooks, which carry every document, with the platform' do
+    sign_in(admin)
+
+    get '/settings/webhooks'
+
+    expect(response).to redirect_to('/')
   end
 
   it 'keeps them for the apps, through the account’s API key' do

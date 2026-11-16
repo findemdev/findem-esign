@@ -14,6 +14,8 @@ class Ability
   private
 
   def admin_rules(user)
+    senders = people_senders(user)
+
     can %i[read create update], Template, Abilities::TemplateConditions.collection(user) do |template|
       Abilities::TemplateConditions.entity(template, user:, ability: 'manage')
     end
@@ -21,7 +23,7 @@ class Ability
     can :destroy, Template, account_id: user.account_id
     can :manage, TemplateFolder, account_id: user.account_id
     can :manage, TemplateSharing, template: { account_id: user.account_id }
-    document_rules(user)
+    document_rules(user, senders)
     can :manage, User, account_id: user.account_id
     can :manage, EncryptedConfig, account_id: user.account_id
     can :manage, EncryptedUserConfig, user_id: user.id
@@ -30,7 +32,8 @@ class Ability
     can :manage, Account, id: user.account_id
     can :manage, AccessToken, user_id: user.id
     can :manage, McpToken, user_id: user.id
-    can :manage, WebhookUrl, account_id: user.account_id
+    # Webhooks carry everything about every document, so where the platform's apps send, the platform keeps them.
+    can :manage, WebhookUrl, account_id: user.account_id unless senders
 
     can :manage, :mcp
   end
@@ -39,9 +42,7 @@ class Ability
   # that stands for the tenant (Api::Platform::AccountsController), and those documents, their signers and their files are
   # the apps' to show. Everyone else there gets the documents a person sent, or nobody did (a template's shared link); the
   # templates stay as they are. The user that stands for the tenant keeps them all.
-  def document_rules(user)
-    senders = people_senders(user)
-
+  def document_rules(user, senders)
     if senders
       can :manage, Submission, account_id: user.account_id, created_by_user_id: senders
       can :manage, Submitter, account_id: user.account_id, submission: { created_by_user_id: senders }

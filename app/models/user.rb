@@ -117,6 +117,11 @@ class User < ApplicationRecord
     current_sign_in_at.nil? || current_sign_in_at <= PLATFORM_TIMEOUT.ago
   end
 
+  # The user a platform account's apps send with (Api::Platform::AccountsController#stand_for_tenant), not a person.
+  def stands_for_tenant?
+    user_configs.find_by(key: UserConfig::STANDS_FOR_TENANT)&.value == true
+  end
+
   def sidekiq?
     return true if Rails.env.development?
 
