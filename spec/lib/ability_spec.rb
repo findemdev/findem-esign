@@ -12,7 +12,8 @@ describe Ability do
     own = create(:submission, :with_submitters, template:, created_by_user: member)
     other = create(:submission, :with_submitters, template:, created_by_user: admin)
     own_template = create(:template, account:, author: member)
-    elsewhere = create(:template)
+    other_account = create(:account)
+    elsewhere = create(:template, account: other_account, author: create(:user, account: other_account))
     ability = described_class.new(member)
 
     expect(Submission.accessible_by(ability)).to contain_exactly(own)
