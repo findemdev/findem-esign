@@ -48,8 +48,12 @@
 #
 class User < ApplicationRecord
   ROLES = [
-    ADMIN_ROLE = 'admin'
+    ADMIN_ROLE = 'admin',
+    MEMBER_ROLE = 'member'
   ].freeze
+
+  # How long a person in a platform account stays signed in without a visit (remember_me, timeout_in).
+  PLATFORM_TIMEOUT = 8.hours
 
   EMAIL_REGEXP = /[^@;,<>\s]+@[^@;,<>\s]+/
 
@@ -69,7 +73,7 @@ class User < ApplicationRecord
   has_many :encrypted_configs, dependent: :destroy, class_name: 'EncryptedUserConfig'
   has_many :email_messages, dependent: :destroy, foreign_key: :author_id, inverse_of: :author
 
-  devise :two_factor_authenticatable, :recoverable, :rememberable, :validatable, :trackable, :lockable
+  devise :two_factor_authenticatable, :recoverable, :rememberable, :validatable, :trackable, :lockable, :timeoutable
 
   attribute :role, :string, default: ADMIN_ROLE
   attribute :uuid, :string, default: -> { SecureRandom.uuid }
@@ -95,8 +99,14 @@ class User < ApplicationRecord
     super && !archived_at? && !account.archived_at?
   end
 
+  # A person in a platform account is not remembered, and is signed out after PLATFORM_TIMEOUT without a visit: they come
+  # back through the platform, which checks them and their role again (PlatformSessions). Nobody else times out.
   def remember_me
-    true
+    !account&.external_id?
+  end
+
+  def timeout_in
+    PLATFORM_TIMEOUT if account&.external_id?
   end
 
   def sidekiq?
