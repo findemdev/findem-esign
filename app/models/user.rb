@@ -100,9 +100,9 @@ class User < ApplicationRecord
     super && !archived_at? && !account.archived_at?
   end
 
-  # A person in a platform account is not remembered, and is signed out PLATFORM_TIMEOUT after the platform last signed
-  # them in, however often they visit: they come back through the platform, which checks them and their role again
-  # (PlatformSessions). Nobody else times out.
+  # A person in a platform account is not remembered, and is signed out PLATFORM_TIMEOUT after they last signed in,
+  # however often they visit: they come back through the platform, which checks them and their role again
+  # (PlatformSessions). A sign-in's own request has no last visit yet, and its time starts there. Nobody else times out.
   def remember_me
     !account&.external_id?
   end
@@ -111,8 +111,8 @@ class User < ApplicationRecord
     !account&.external_id? && super
   end
 
-  def timedout?(_last_access)
-    return false unless account&.external_id?
+  def timedout?(last_access)
+    return false unless last_access && account&.external_id?
 
     current_sign_in_at.nil? || current_sign_in_at <= PLATFORM_TIMEOUT.ago
   end
